@@ -1,0 +1,32 @@
+instance of PG_ProviderProfileCapabilities
+{
+    CapabilityID = "@CLASS@_DSP1116";
+
+    ProviderModuleName = "cmpiLMI_Networking";
+
+    ProviderName = "@CLASS@";
+
+    RegisteredProfile = 507;
+
+    ProfileVersion = "1.0.0";
+
+    RegisteredSubProfiles = {
+        0
+    };
+
+    OtherRegisteredSubProfiles = {
+        "IP Configuration"
+    };
+
+    SubprofileVersions = {
+        "1.0.1"
+    };
+
+    OtherSubprofileOrganizations = {
+        "DMTF"
+    };
+
+    ConformingElements = {
+        "@CLASS@"
+    };
+};

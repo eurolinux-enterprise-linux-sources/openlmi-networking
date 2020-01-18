@@ -1,0 +1,236 @@
+{
+    "classes": [
+        {
+            "name": "LMI_IPNetworkConnection"
+        },
+        {
+            "name": "LMI_BindsToLANEndpoint",
+            "count": "%select * from LMI_IPProtocolEndpoint"
+        },
+        {
+            "name": "LMI_NetworkDeviceSAPImplementation",
+            "count": "%select * from LMI_LANEndpoint"
+        },
+        {
+            "name": "LMI_DHCPSettingData"
+        },
+        {
+            "name": "LMI_DNSProtocolEndpoint"
+        },
+        {
+            "name": "LMI_DNSSettingData"
+        },
+        {
+            "name": "LMI_IPElementSettingData"
+        },
+        {
+            "name": "LMI_EthernetPort",
+            "count": "%select * from LMI_IPNetworkConnection"
+        },
+        {
+            "name": "LMI_HostedIPConfigurationService",
+            "count": "1"
+        },
+        {
+            "name": "LMI_IPAssignmentSettingData"
+        },
+        {
+            "name": "LMI_IPConfigurationService",
+            "count": "1"
+        },
+        {
+            "name": "LMI_IPProtocolEndpoint"
+        },
+        {
+            "name": "LMI_LANEndpoint"
+        },
+        {
+            "name": "LMI_OrderedIPAssignmentComponent"
+        },
+        {
+            "name": "LMI_NetworkRemoteAccessAvailableToElement"
+        },
+        {
+            "name": "LMI_NetworkRemoteServiceAccessPoint"
+        },
+        {
+            "name": "LMI_NetworkSAPSAPDependency"
+        },
+        {
+            "name": "LMI_IPConfigurationServiceAffectsElement"
+        },
+        {
+            "name": "LMI_ExtendedStaticIPAssignmentSettingData"
+        },
+        {
+            "name": "LMI_NetworkSystemDevice",
+            "count": "%select * from LMI_EthernetPort"
+        },
+        {
+            "name": "LMI_EthernetPortStatistics",
+            "count": "%select * from LMI_EthernetPort"
+        },
+        {
+            "name": "LMI_NetworkEnabledLogicalElementCapabilities",
+            "count": "2"
+        },
+        {
+            "name": "LMI_NetworkElementCapabilities"
+        }
+
+    ],
+    "associations": [
+        {
+            "name": "LMI_HostedIPConfigurationService",
+            "from": "PG_ComputerSystem",
+            "from_role": "Antecedent",
+            "to": "LMI_IPConfigurationService",
+            "to_role": "Dependent",
+            "count": "1"
+        },
+        {
+            "name": "LMI_NetworkSystemDevice",
+            "from": "PG_ComputerSystem",
+            "from_role": "GroupComponent",
+            "to": "LMI_EthernetPort",
+            "to_role": "PartComponent",
+            "count": "%select * from LMI_IPNetworkConnection"
+        },
+        {
+            "name": "LMI_IPConfigurationServiceAffectsElement",
+            "filter": { "to_class": "LMI_DNSProtocolEndpoint" },
+            "from": "LMI_IPConfigurationService",
+            "from_role": "AffectingElement",
+            "to": "LMI_DNSProtocolEndpoint",
+            "to_role": "AffectedElement",
+            "count": "%select * from LMI_DNSProtocolEndpoint"
+        },
+        {
+            "name": "LMI_IPConfigurationServiceAffectsElement",
+            "filter": { "to_class": "LMI_IPProtocolEndpoint" },
+            "from": "LMI_IPConfigurationService",
+            "from_role": "AffectingElement",
+            "to": "LMI_IPProtocolEndpoint",
+            "to_role": "AffectedElement",
+            "count": "%select * from LMI_IPProtocolEndpoint"
+        },
+        {
+            "name": "LMI_OrderedIPAssignmentComponent",
+            "filter": { "to_class": "LMI_DHCPSettingData" },
+            "from": "LMI_IPAssignmentSettingData",
+            "from_role": "GroupComponent",
+            "to": "LMI_DHCPSettingData",
+            "to_role": "PartComponent",
+            "count": "%select * from LMI_DHCPSettingData"
+        },
+        {
+            "name": "LMI_OrderedIPAssignmentComponent",
+            "filter": { "to_class": "LMI_ExtendedStaticIPAssignmentSettingData" },
+            "from": "LMI_IPAssignmentSettingData",
+            "from_role": "GroupComponent",
+            "to": "LMI_ExtendedStaticIPAssignmentSettingData",
+            "to_role": "PartComponent",
+            "count": "%select * from LMI_ExtendedStaticIPAssignmentSettingData"
+        },
+        {
+            "name": "LMI_OrderedIPAssignmentComponent",
+            "filter": { "to_class": "LMI_DNSSettingData" },
+            "from": "LMI_IPAssignmentSettingData",
+            "from_role": "GroupComponent",
+            "to": "LMI_DNSSettingData",
+            "to_role": "PartComponent",
+            "count": "%select * from LMI_DNSSettingData"
+        },
+        {
+            "name": "LMI_NetworkSystemDevice",
+            "from": "PG_ComputerSystem",
+            "from_role": "GroupComponent",
+            "to": "LMI_EthernetPort",
+            "to_role": "PartComponent",
+            "count": "%select * from LMI_IPNetworkConnection"
+        },
+        {
+            "name": "LMI_NetworkDeviceSAPImplementation",
+            "from": "LMI_EthernetPort",
+            "from_role": "Antecedent",
+            "to": "LMI_LANEndpoint",
+            "to_role": "Dependent",
+            "count": "%select * from LMI_IPNetworkConnection"
+        },
+        {
+            "name": "LMI_NetworkRemoteAccessAvailableToElement",
+            "filter": { "to_class": "LMI_IPNetworkConnection" },
+            "from": "LMI_NetworkRemoteServiceAccessPoint",
+            "from_role": "Antecedent",
+            "to": "LMI_IPNetworkConnection",
+            "to_role": "Dependent"
+        },
+        {
+            "name": "LMI_NetworkRemoteAccessAvailableToElement",
+            "filter": { "to_class": "LMI_DNSProtocolEndpoint" },
+            "from": "LMI_NetworkRemoteServiceAccessPoint",
+            "from_role": "Antecedent",
+            "to": "LMI_DNSProtocolEndpoint",
+            "to_role": "Dependent"
+        },
+        {
+            "name": "LMI_BindsToLANEndpoint",
+            "from": "LMI_LANEndpoint",
+            "from_role": "Antecedent",
+            "to": "LMI_IPProtocolEndpoint",
+            "to_role": "Dependent",
+            "count": "%select * from LMI_IPProtocolEndpoint"
+        },
+        {
+            "name": "LMI_NetworkSAPSAPDependency",
+            "filter": { "to_class": "LMI_DNSProtocolEndpoint" },
+            "from": "LMI_IPProtocolEndpoint",
+            "from_role": "Antecedent",
+            "to": "LMI_DNSProtocolEndpoint",
+            "to_role": "Dependent"
+        },
+        {
+            "name": "LMI_NetworkSAPSAPDependency",
+            "filter": { "from_class": "LMI_IPNetworkConnection" },
+            "from": "LMI_IPNetworkConnection",
+            "from_role": "Antecedent",
+            "to": "LMI_IPProtocolEndpoint",
+            "to_role": "Dependent",
+            "count": "%select * from LMI_IPProtocolEndpoint"
+        },
+        {
+            "name": "LMI_IPElementSettingData",
+            "filter": { "from_class": "LMI_IPProtocolEndpoint" },
+            "from": "LMI_IPProtocolEndpoint",
+            "from_role": "ManagedElement",
+            "to": "LMI_IPAssignmentSettingData",
+            "to_role": "SettingData"
+        },
+        {
+            "name": "LMI_IPElementSettingData",
+            "filter": { "from_class": "LMI_DNSProtocolEndpoint" },
+            "from": "LMI_DNSProtocolEndpoint",
+            "from_role": "ManagedElement",
+            "to": "LMI_IPAssignmentSettingData",
+            "to_role": "SettingData"
+        },
+        {
+            "name": "LMI_NetworkElementCapabilities",
+            "filter": { "from_class": "LMI_LANEndpoint" },
+            "from": "LMI_LANEndpoint",
+            "from_role": "ManagedElement",
+            "to": "LMI_NetworkEnabledLogicalElementCapabilities",
+            "to_role": "Capabilities",
+            "count": "%select * from LMI_LANEndpoint"
+        },
+        {
+            "name": "LMI_NetworkElementCapabilities",
+            "filter": { "from_class": "LMI_EthernetPort" },
+            "from": "LMI_EthernetPort",
+            "from_role": "ManagedElement",
+            "to": "LMI_NetworkEnabledLogicalElementCapabilities",
+            "to_role": "Capabilities",
+            "count": "%select * from LMI_EthernetPort"
+        }
+    ]
+}

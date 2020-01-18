@@ -1,0 +1,25 @@
+
+instance of PG_ProviderProfileCapabilities
+{
+    CapabilityID = "LMI_NetworkPort_DSP1014";
+
+    ProviderModuleName = "cmpiLMI_Networking";
+
+    ProviderName = "LMI_NetworkPort";
+
+    RegisteredProfile = 501;
+
+    ProfileVersion = "1.0.1";
+
+    RegisteredSubProfiles = {
+        3009
+    };
+
+    SubprofileVersions = {
+        "1.0.1"
+    };
+
+    ConformingElements = {
+        "LMI_NetworkPort"
+    };
+};

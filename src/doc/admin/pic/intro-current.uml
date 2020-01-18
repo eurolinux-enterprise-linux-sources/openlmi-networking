@@ -1,0 +1,46 @@
+@startuml
+
+object "LMI_IPVersionElementSettingData" as IPv4 {
+    InstanceID = "IPv4"
+}
+
+object "LMI_IPVersionElementSettingData" as IPv6 {
+    InstanceID = "IPv6"
+}
+
+object LMI_IPNetworkConnection {
+    Name = "em1"
+}
+
+object "LMI_IPProtocolEndpoint" as LMI_IPProtocolEndpoint1 {
+    ProtocolIFType = 4096 (IPv4)
+    IPv4Address = "192.168.1.100"
+    SubnetMask = "255.255.255.0"
+}
+
+object "LMI_IPProtocolEndpoint" as LMI_IPProtocolEndpoint2 {
+    ProtocolIFType = 4097 (IPv6)
+    IPv46ddress = "2001:0db8:0000:2219:0210:18ff:fe97:2222"
+    IPv6SubnetPrefixLength = 64
+}
+
+object "LMI_NetworkRemoteServiceAccessPoint" as LMI_NetworkRemoteServiceAccessPoint1 {
+    AccessContext = 2 (Default Gateway)
+    AccessInfo = "192.168.1.1"
+    InfoFormat = 3 (IPv4 Address)
+}
+
+object "LMI_NetworkRemoteServiceAccessPoint" as LMI_NetworkRemoteServiceAccessPoint2 {
+    AccessContext = 2 (Default Gateway)
+    AccessInfo = "2001:0db8:0000:2219:0210:18ff:fe97:0001"
+    InfoFormat = 4 (IPv6 Address)
+}
+
+LMI_IPNetworkConnection -- LMI_IPProtocolEndpoint1 : LMI_NetworkSAPSAPDependency
+LMI_IPNetworkConnection -- LMI_NetworkRemoteServiceAccessPoint1 : LMI_NetworkRemoteAccessAvailableToElement
+LMI_IPProtocolEndpoint2 -right- LMI_IPNetworkConnection : LMI_NetworkSAPSAPDependency
+LMI_IPNetworkConnection -- LMI_NetworkRemoteServiceAccessPoint2 : LMI_NetworkRemoteAccessAvailableToElement
+LMI_IPNetworkConnection -up- IPv4 : LMI_IPVersionElementSettingData
+LMI_IPNetworkConnection -up- IPv6 : LMI_IPVersionElementSettingData
+
+@enduml

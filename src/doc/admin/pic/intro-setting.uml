@@ -1,0 +1,35 @@
+@startuml
+
+object LMI_IPNetworkConnection {
+    Name = "em1"
+}
+
+object "LMI_IPAssignmentSettingData" as C1 {
+    IstanceID = "2069e582-fb7a-4abb-bdbc-3a69f3f5f739"
+    Caption = "DHCP Connection"
+}
+
+object "LMI_IPAssignmentSettingData" as C2 {
+    IstanceID = "b42da2f4-46e4-476b-9c7e-2b11590ce204"
+    Caption = "Static Connection"
+}
+
+
+object "LMI_DHCPSettingData" as DHCP1 {
+}
+
+object "LMI_DNSSettingData" as DNS1 {
+
+}
+
+object "LMI_ExtendedStaticIPAssignmentSettingData" as Static1 {
+
+}
+
+C1 -- DHCP1 : LMI_OrderedIPAssignmentComponent
+C1 -- DNS1 : LMI_OrderedIPAssignmentComponent
+C2 -- Static1 : LMI_OrderedIPAssignmentComponent
+LMI_IPNetworkConnection -- C1 : "LMI_IPElementSettingData\nIsCurrent = 1 (Is Current)\nIsDefault = 1 (Is Default)"
+LMI_IPNetworkConnection -- C2 : "LMI_IPElementSettingData\nIsCurrent = 2 (Is Current)\nIsDefault = 2 (Is Default)"
+
+@enduml

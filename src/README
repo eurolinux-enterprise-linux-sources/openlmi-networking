@@ -1,0 +1,70 @@
+-----------
+| OpenLMI |
+-----------
+
+This software is part of OpenLMI - collection of CIM providers for system management.
+
+https://fedorahosted.org/openlmi/
+
+
+Networking
+----------
+
+This provider implements parts of Network-related SMASH profiles [1] and CIM schema [2]
+created by DMTF [3]. It uses NetworkManager [4] as backend.
+
+[1] http://dmtf.org/standards/profiles
+[2] http://dmtf.org/standards/cim
+[3] http://dmtf.org/
+[4] http://projects.gnome.org/NetworkManager/
+
+Requirements
+------------
+
+You need to have following programs installed in order to build openlmi-networking
+
+* cmake
+* cim-schema
+
+You also need following programs/libraries with development packages installed:
+
+* openlmi-providers(-devel)
+* konkretcmpi(-devel)
+* sblim-cmpi-devel
+* glib2(-devel)
+* check(-devel)
+* NetworkManager(-devel)
+* libuuid(-devel)
+
+
+Installation
+------------
+
+openlmi-networking uses CMake as build system. Use following command to build,
+install and register provider.
+
+$ mkdir build && cd build
+$ cmake .. -DCMAKE_INSTALL_PREFIX=/usr
+$ make
+# make install
+# make register-Networking
+
+Tests
+-----
+
+There are few additional dependencies for running tests:
+* python
+* pygobject2
+* dbus-python
+* python-IPy
+* pywbem
+* dbus-x11
+* pexpect
+
+Documentation
+-------------
+
+There are couple more dependencies required for generating CIM API documentation
+* python-sphinx
+* plantuml
+

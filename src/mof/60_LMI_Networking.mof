@@ -1,0 +1,1285 @@
+/*
+ * Copyright (C) 2012-2013 Red Hat, Inc.  All rights reserved.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ * Authors: Radek Novacek <rnovacek@redhat.com>
+ */
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"), Description(
+    "LMI_IPNetworkConnection represents the IP network connection "
+    "in the system, Eg. \"Local Area Connection\",\"eth0\"") ]
+class LMI_IPNetworkConnection: CIM_IPNetworkConnection
+{
+    [ Implemented(true), Description("Human readable device name") ]
+    string ElementName;
+
+    [ Implemented(true), Description(
+        "OperatingStatus provides a current status value for the operational "
+        "condition of the element. It can also provide the transitional "
+        "states when an element is transitioning from one state to another.\n"
+        "OperatingStatus consists of one of the following values: Unknown, Not "
+        "Available, Starting, Stopping, Stopped, Aborted, Dormant, In Service\n"
+        "- ``Unknown`` indicates the implementation is in general capable of "
+        "returning this property, but is unable to do so at this time.\n"
+        "- ``Not Available`` indicates that the device is recognized, but "
+        "not managed by implementation\n"
+        "- ``Starting`` describes an element being initialized. \n"
+        "- ``Stopping`` describes an element being brought to an orderly stop.\n"
+        "- ``Stopped`` describes an element can be activate, but is currently "
+        "idle\n"
+        "- ``Aborted`` indicates that the element is unable to complete "
+        "requested action (usually activate the connection).\n"
+        "- ``Dormant`` indicates that the element is not available to use. "
+        "Reasons might include the wireless switched off, missing firmware, "
+        "no ethernet carrier, missing supplicant or modem manager, etc.\n"
+        "- ``In Service`` describes an element that is in service and "
+        "operational."),
+      ValueMap { "0", "1", "3", "4", "5", "6", "7", "16" },
+      Values { "Unknown", "Not Available", "Starting", "Stopping", "Stopped", "Aborted", "Dormant", "In Service" }
+    ] uint16 OperatingStatus;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_IPNetworkConnectionCapabilities: CIM_EnabledLogicalElementCapabilities
+{
+    [ Implemented(true), Description("Human readable device name") ]
+    string ElementName;
+
+    [ Implemented(true), Description("Boolean indicating whether the ElementName "
+        "can be modified.") ]
+    boolean ElementNameEditSupported;
+
+    [ Implemented(true), Description("Creates a LMI_IPAssignmentSettingData "
+        "instance or instance of its subclasses.\n"
+        "Caller can modify the setting via ModifyInstance instrinsic method. "
+        "Created IPAssignmentSettingData will be associated with instance of "
+        "LMI_IPNetworkConnection that this instance is associated with.\n"
+        "When both IPv4Type and IPv6Type is not ``0 - Disabled``, "
+        "LMI_IPAssignmentSettingData instance with ``AddressOrigin = 11 "
+        "(cumulative configuration)`` will be created and both "
+        "LMI_IPAssignmentSettingData subclasses will be associated to it.\n"
+        "For types ``4 - Bonding`` and ``5 - Bridging`` the associated "
+        "IPNetworkConnection will be enslaved by created SettingData"
+        "(meaning that LMI_CreateSlaveSetting will be automatically called).") ]
+    uint16 LMI_CreateIPSetting(
+        [ IN, Description("Name of the configuration") ]
+        string Caption,
+
+        [ IN, Description("Base type of the settings. Use this option to "
+            "specify the type of setting. Currently supported are:\n"
+            "- ``Ethernet`` - create ethernet connection. This is default value."
+            //"- ``Wireless`` - create wireless connection"
+            //"- ``VPN`` - create vpn connection"
+            "- ``Bonding`` - create master connection for bonding"
+            "- ``Bridging`` - create master connection for bridging"),
+          ValueMap { "1", "4", "5" },
+          Values { "Ethernet", "Bonding", "Bridging" } ]
+        uint16 Type,
+
+        [ IN, Description("Type of the setting for IPv4, default is "
+            "``0 - Disabled``."),
+          ValueMap { "0", "3", "4" },
+          Values { "Disabled", "Static", "DHCP" } ]
+        uint16 IPv4Type,
+
+        [ IN, Description("Type of the setting for IPv6, default is "
+            "``0 - Disabled``."),
+          ValueMap { "0", "3", "7", "9" },
+          Values { "Disabled", "Static", "DHCPv6", "Stateless" } ]
+        uint16 IPv6Type,
+
+        [ IN(false), OUT, Description("Created setting data") ]
+        CIM_IPAssignmentSettingData REF SettingData);
+
+    [ Implemented(true), Description("Add associated IPNetworkConnection to "
+        "the given MasterSettingData. The MasterSettingData must have type "
+        "``4 - Bonding`` or ``5 - Bridging``.") ]
+    uint16 LMI_CreateSlaveSetting(
+        [ IN, Description("SettingData to add IPNetworkConnection to.") ]
+        CIM_IPAssignmentSettingData REF MasterSettingData,
+        [ OUT, Description("Created setting data") ]
+        CIM_IPAssignmentSettingData REF SettingData);
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_IPNetworkConnectionElementCapabilities: CIM_ElementCapabilities
+{
+    [ Key, Override("ManagedElement") ]
+    LMI_IPNetworkConnection REF ManagedElement;
+    [ Key, Override("Capabilities") ]
+    LMI_IPNetworkConnectionCapabilities REF Capabilities;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_IPVersionSettingData: CIM_IPVersionSettingData
+{
+    [ Implemented(true), Description("An enumeration that describes the "
+        "IP version."),
+      ValueMap { "4096", "4097" },
+      Values { "IPv4", "IPv6" } ]
+    uint16 ProtocolIFType;
+
+    [ Implemented(true), Description("Enumeration indicating the type of "
+        "setting. ``0 - Not Changeable - Persistent`` indicates the instance of "
+        "SettingData represents primordial settings and shall not "
+        "be modifiable. ``1 - Changeable - Transient`` indicates "
+        "the SettingData represents modifiable settings that are "
+        "not persisted. Establishing persistent settings from "
+        "transient settings may be supported. ``2 - Changeable - Persistent`` "
+        "indicates the SettingData represents a persistent configuration that "
+        "may be modified. ``3 - Not Changeable - Transient`` indicates the "
+        "SettingData represents a snapshot of the settings of the associated "
+        "ManagedElement and is not persistent."),
+      ValueMap { "0", "1", "2", "3" },
+      Values { "Not Changeable - Persistent",
+               "Changeable - Transient", "Changeable - Persistent",
+               "Not Changeable - Transient" } ]
+    uint16 ChangeableType;
+
+    [ Implemented(true), Description("The user-friendly name for this "
+        "instance of SettingData. In addition, the user-friendly name can be "
+        "used as an index property for a search or query. (Note: The name does "
+        "not have to be unique within a namespace.)") ]
+    string ElementName;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("LMI_NetworkHostedAccessPoint is an association between "
+        "IPNetworkConnection or IPProtocolEndpoint representation and "
+        "the System on which it is provided.") ]
+class LMI_NetworkHostedAccessPoint: CIM_HostedAccessPoint
+{
+    [ Override("Antecedent"), Min(1), Max(1),
+      Description("The hosting ComputerSystem.") ]
+    CIM_ComputerSystem REF Antecedent;
+
+    [ Override("Dependent"), Weak, Description(
+        "LMI_IPNetworkConnection or LMI_IPProtocolEndpoint that are hosted "
+        "on this ComputerSystem.") ]
+    CIM_ServiceAccessPoint REF Dependent;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("Association between NetworkPort and ComputerSystem "
+        "where it belongs.") ]
+class LMI_NetworkSystemDevice: CIM_SystemDevice
+{
+    [ Aggregate, Override("GroupComponent"), Min(1), Max(1),
+      Description("The hosting ComputerSystem.") ]
+    CIM_ComputerSystem REF GroupComponent;
+
+    [ Override("PartComponent"), Weak,
+      Description("The NetworkPort (or subclass) that is a component "
+        "of a ComputerSystem.") ]
+    CIM_LogicalDevice REF PartComponent;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("An association between a ServiceAccessPoint (NetworkPort "
+    "in this case) and how it is implemented (LANEndpoint).") ]
+class LMI_NetworkDeviceSAPImplementation: CIM_DeviceSAPImplementation
+{
+    [ Override("Antecedent"),
+      Description("The instance of CIM_NetworkPort subclass "
+        "representing network device.") ]
+    CIM_NetworkPort REF Antecedent;
+
+    [ Override("Dependent"),
+      Description("The instance of LMI_LANEndpoint that represent "
+        "same device as Antecedent.") ]
+    CIM_ServiceAccessPoint REF Dependent;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("This association makes explicit the dependency of a SAP or "
+    "ProtocolEndpoint on an underlying LANEndpoint, on the same system.") ]
+class LMI_BindsToLANEndpoint: CIM_BindsToLANEndpoint
+{
+    [ Override("Antecedent"), Description(
+        "The underlying LANEndpoint, which is depended upon.") ]
+   CIM_LANEndpoint REF Antecedent;
+
+    [ Override("Dependent"),
+    Description("The AccessPoint or ProtocolEndpoint dependent on the "
+        "LANEndpoint.") ]
+   CIM_ServiceAccessPoint REF Dependent;
+
+    [ Implemented(true), Description("This describes the framing method for "
+        "the upper layer SAP or Endpoint that is bound to the LANEndpoint."),
+      ValueMap { "1" },
+      Values { "Ethernet" } ]
+    uint16 FrameType;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_EthernetPort: CIM_EthernetPort
+{
+    [ Implemented(true), Description("A user-friendly name for the object.") ]
+    string ElementName;
+
+    [ Implemented(true), Description(
+          "PermanentAddress defines the network address that is "
+          "hardcoded into a port. This \'hardcoded\' address can be "
+          "changed using a firmware upgrade or a software "
+          "configuration. When this change is made, the field "
+          "should be updated at the same time. PermanentAddress "
+          "should be left blank if no \'hardcoded\' address exists "
+          "for the NetworkAdapter."),
+       MaxLen ( 64 ),
+       MappingStrings { "MIF.DMTF|Network Adapter 802 Port|001.2" }]
+    string PermanentAddress;
+
+    [ Implemented(true), Description(
+        "Ethernet/802.3 MAC addresses formatted as twelve hexadecimal digits "
+        "(for example, ``010203040506``), with each pair representing one "
+        "of the six octets of the MAC address in ``canonical`` bit order. "
+        "(Therefore, the Group address bit is found in the low order bit "
+        "of the first character of the string.)"),
+        MaxLen(64),
+        MappingStrings {"MIF.DMTF|Network Adapter 802 Port|001.3" } ]
+    string NetworkAddresses[];
+
+    [ Implemented(true), Description(
+          "An enumeration of the types of links. When set to 1 "
+          "(\"Other\"), the related property OtherLinkTechnology "
+          "contains a string description of the type of link." ),
+       ValueMap { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+          "10", "11" },
+       Values { "Unknown", "Other", "Ethernet", "IB", "FC", "FDDI",
+          "ATM", "Token Ring", "Frame Relay", "Infrared",
+          "BlueTooth", "Wireless LAN" },
+       ModelCorrespondence { "CIM_NetworkPort.OtherLinkTechnology" }]
+    uint16 LinkTechnology;
+
+    [ Implemented(true), Description("The maximum bandwidth of the Port in "
+        "Bits per Second."), Units("Bits per Second"), PUnit("bit / second") ]
+    uint64 MaxSpeed;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_EthernetPortStatistics: CIM_EthernetPortStatistics
+{
+    [ Implemented(true), Description("The user friendly name for this instance "
+        "of StatisticalData. In addition, the user friendly name can be used "
+        "as a index property for a search of query. (Note: Name does not have "
+        "to be unique within a namespace.)") ]
+    string ElementName;
+
+    [ Implemented(true), Description("A caption for this element") ]
+    string Caption = "Ethernet port information";
+
+    [ Implemented(true), Description("Descriptive text for this element") ]
+    string Description = "Statistics on transfer performance for a port";
+
+    [ Implemented(true), Description(
+            "The total number of bytes sent or received through the port" ),
+        Units("Bytes")
+    ]
+    uint64 BytesTotal;
+
+    [ Implemented(true), Description("The aggregated number of receive errors") ]
+    uint64 TotalRxErrors;
+
+    [ Implemented(true), Description("The aggregated number of transmit errors") ]
+    uint64 TotalTxErrors;
+
+    [ Implemented(true), Description("The aggregated number of collisions") ]
+    uint64 TotalCollisions;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_LANEndpoint: CIM_LANEndpoint
+{
+    [ Implemented(true) ] string MACAddress;
+    [ Implemented(true), Description(
+        "The name of the device's control (and often data) interface. ") ]
+    string ElementName;
+    [ Implemented(true),
+      ValueMap { "6" },
+      Values { "Ethernet CSMA/CD" }
+    ] uint16 ProtocolIFType = 6;
+    [ Implemented(true),
+      ValueMap { "0", "1", "3", "4", "5", "6", "7", "16" },
+      Values { "Unknown", "Not Available", "Starting", "Stopping", "Stopped", "Aborted", "Dormant", "In Service" }
+    ] uint16 OperatingStatus;
+    [ Implemented(true),
+      ValueMap { "2", "3" },
+      Values { "Enabled", "Disabled" }
+    ] uint16 AvailableRequestedStates[];
+    [ Implemented(true),
+      ValueMap { "0", "2", "3", "5" },
+      Values { "Unknown", "Enabled", "Disabled", "No Change" }
+    ] uint16 RequestedState;
+    [ Implemented(true),
+      ValueMap { "0", "2", "3", "6" },
+      Values { "Unknown", "Enabled", "Disabled", "Enabled but Offline" }
+    ] uint16 EnabledState;
+
+    [ Implemented(true), Description(
+          "Requests that the state of the element be changed to the "
+          "value specified in the RequestedState parameter. When "
+          "the requested state change takes place, the EnabledState "
+          "and RequestedState of the element will be the same. "
+          "Invoking the RequestStateChange method multiple times "
+          "could result in earlier requests being overwritten or "
+          "lost. \n"
+          "TimeoutPeriod argument is not supported yet and should "
+          "be NULL. \n"
+          "A return code of 0 shall indicate the state change was "
+          "successfully initiated. \n"
+          "Any other return code indicates an error condition." ),
+       ValueMap { "0", "1", "2", "3", "4", "5", "6", "4096",
+          "4097", "4098", "4099" },
+       Values { "Completed with No Error", "Not Supported",
+          "Unknown or Unspecified Error",
+          "Cannot complete within Timeout Period", "Failed",
+          "Invalid Parameter", "In Use",
+          "Method Parameters Checked - Job Started",
+          "Invalid State Transition",
+          "Use of Timeout Parameter Not Supported", "Busy" },
+       ModelCorrespondence {
+          "CIM_EnabledLogicalElement.RequestedState" }]
+   uint32 RequestStateChange(
+         [IN, Description (
+             "The state requested for the element. This "
+             "information will be placed into the RequestedState "
+             "property of the instance if the return code of the "
+             "RequestStateChange method is 0 (\'Completed with "
+             "No Error\'). "
+             "Refer to the description of the EnabledState and "
+             "RequestedState properties for the detailed "
+             "explanations of the RequestedState values." ),
+          ValueMap { "2", "3" },
+          Values { "Enabled", "Disabled" },
+          ModelCorrespondence {
+             "CIM_EnabledLogicalElement.RequestedState" }]
+      uint16 RequestedState,
+         [IN ( false ), OUT, Description (
+             "Creating jobs for changing Endpoint state is not "
+             "supported. This parameter will always be NULL." )]
+      CIM_ConcreteJob REF Job,
+         [IN, Description (
+             "Using TimeoutPeriod is not supported." )]
+      datetime TimeoutPeriod);
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("LMI_EndpointForIPNetworkConnection associates the instance of "
+    "LMI_IPNetworkConnection with the communication endpoint "
+    "(LMI_LANEndpoint).") ]
+class LMI_EndpointForIPNetworkConnection: CIM_EndpointForIPNetworkConnection
+{
+    [ Key, Override("Antecedent"), Description(
+        "The Protocol Endpoint for the network connection.") ]
+    LMI_LANEndpoint REF Antecedent;
+
+    [ Key, Override("Dependent"), Description(
+        "The instance representing the IP network connection.") ]
+    LMI_IPNetworkConnection REF Dependent;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"), Description(
+    "Instance of LMI_IPProtocolEndpoint represents one IP address.") ]
+class LMI_IPProtocolEndpoint: CIM_IPProtocolEndpoint
+{
+    [ Implemented(true), Description(
+        "This property explicitly defines support for different versions "
+        "of the IP protocol."),
+      ValueMap { "4096", "4097" },
+      Values { "IPv4", "IPv6" } ]
+    uint16 ProtocolIFType;
+
+    [ Implemented(true), Description(
+        "The IPv4 address that this ProtocolEndpoint represents.") ]
+    string IPv4Address;
+
+    [ Implemented(true), Description(
+        "The mask for the IPv4 address of this ProtocolEndpoint, "
+        "if one is defined.") ]
+    string SubnetMask;
+
+    [ Implemented(true), Description(
+        "The IPv6 address that this ProtocolEndpoint represents.") ]
+    string IPv6Address;
+
+    [ Implemented(true), Description(
+        "The prefix length for the IPv6 address of this Protocol Endpoint, "
+        "if one is defined.") ]
+    uint8 PrefixLength;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("IPElementSettingData represents the association between "
+      "ManagedElement (IPNetworkConnection or LinkAggregator8023ad) "
+      "and applicable setting data. This association also describes whether "
+      "this is a default or current setting. "
+      "Each non-null, non-key property of the associated SettingData "
+      "instance defines a setting value for the associated ManagedElement. "
+      "The properties, IsDefault, IsCurrent and IsNext, further qualify those "
+      "setting values.\n"
+      ".. note::"
+      "    The referenced SettingData instance does not reflect the "
+      "    current desired state of the referenced ManagedElement unless "
+      "    ``IsCurrent`` has value ``1 (Is Current)``. \n")
+]
+class LMI_IPElementSettingData: CIM_ElementSettingData
+{
+    [ Override("ManagedElement"),
+      Key, Description("The managed element.") ]
+    CIM_ManagedElement REF ManagedElement;
+
+    [ Override ( "SettingData" ),
+      Key, Description ("The SettingData object associated with the element.") ]
+    CIM_IPAssignmentSettingData REF SettingData;
+
+    [ Implemented(true), Description(
+        "An enumerated integer that indicates that the referenced setting is "
+        "a default setting for the element."),
+      ValueMap { "1", "2" },
+      Values { "Is Default", "Is Not Default" } ]
+    uint16 IsDefault;
+
+    [ Implemented(true), Description(
+        "An enumerated integer that indicates that the referenced SettingData "
+        "represents currently active configuration.\n"),
+       ValueMap { "1", "2" },
+       Values { "Is Current", "Is Not Current" } ]
+    uint16 IsCurrent;
+
+    [ Implemented(true), Description(
+        "An enumerated integer indicating whether or not the referenced "
+        "setting is the next setting to be applied. For example, the "
+        "application could take place on a re-initialization, reset, "
+        "reconfiguration request."),
+      ValueMap { "1", "2" },
+      Values { "Is Next", "Is Not Next" } ]
+    uint16 IsNext;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("LMI_IPVersionElementSettingData is association between "
+    "IPVersionSettingData and ComputerSystem or IPNetworkConnection.\n"
+    "Association with ComputerSystem means that the ComputerSystem supports "
+    "given IP version. Association with IPNetworkConnection means that the "
+    "IPNetworkConnection supports given IP version.") ]
+class LMI_IPVersionElementSettingData: CIM_ElementSettingData
+{
+    [ Override("ManagedElement"), Key, Description("The managed element.") ]
+    CIM_ManagedElement REF ManagedElement;
+
+    [ Override("SettingData"), Key, Description(
+        "The SettingData object associated with the element.") ]
+    CIM_IPVersionSettingData REF SettingData;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.2.0") ]
+class LMI_IPAssignmentSettingData: CIM_IPAssignmentSettingData
+{
+    [ Implemented(true), Description(
+        "AddressOrigin identifies the method by which the IP "
+        "Address, Subnet Mask for IPv4 or Prefix Length for IPv6, "
+        "and Gateway shall be assigned to the IPProtocolEndpoint.\n"
+        "Value ``9 - Stateless`` means that the values are autoconfigured "
+        "using stateless IPv6 configuration. "
+        "Value ``11 - Cumulative Configuration`` means that the configuration "
+        "contains multiple sub-configurations, that are in instances of "
+        "CIM_IPAssignmentSettingData subclasses and are associated via "
+        "LMI_OrderedIPAssignmentComponent to instance of this class"),
+      ValueMap { "9", "11" },
+      Values { "Stateless", "cumulative configuration" } ]
+    uint16 AddressOrigin = 11;
+
+    [ Implemented(true), Write(true), Description(
+        "Name of the configuration." ), MaxLen(64) ]
+    string Caption;
+
+    [ Implemented(true),
+      ValueMap { "4096", "4097", "32768" },
+      Values { "IPv4", "IPv6", "Both IPv4 and IPv6" } ]
+    uint16 ProtocolIFType;
+
+    [ Implemented(true), Description("Type of the setting for IPv4. Value of "
+        "this property comes from LMI_CreateIPSetting method. Use "
+        "ModifyInstance method to change the type of the configuration."),
+      ValueMap { "0", "3", "4" },
+      Values { "Disabled", "Static", "DHCP" } ]
+    uint16 IPv4Type;
+
+    [ Implemented(true), Description("Type of the setting for IPv6. Value of "
+        "this property comes from LMI_CreateIPSetting method. Use "
+        "ModifyInstance method to change the type of the configuration."),
+      ValueMap { "0", "3", "7", "9" },
+      Values { "Disabled", "Static", "DHCPv6", "Stateless" } ]
+    uint16 IPv6Type;
+
+    [ Implemented(true),
+      Description("Add static IP route that will be part of the "
+        "IPAssignmentSettingData.") ]
+    uint32 LMI_AddStaticIPRoute(
+        [ Required, IN, Description("An enumeration that describes the "
+            "format of the address properties."),
+          ValueMap { "1", "2" },
+          Values { "IPv4", "IPv6" } ]
+        uint16 AddressType,
+
+        [ Required, IN, Description(
+            "The address which serves as the destination to be reached.") ]
+        string DestinationAddress,
+
+        [ IN, Description(
+            "The mask for the IPv4 destination address.") ]
+        string DestinationMask,
+
+        [ IN, Description (
+            "The prefix length for the IPv6 destination address.") ]
+        uint8 PrefixLength,
+
+        [ IN(false), OUT, Description("Created static IP route") ]
+        LMI_IPRouteSettingData REF Route);
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_DHCPSettingData: CIM_DHCPSettingData
+{
+    [ Implemented(true), Override("AddressOrigin"), Description(
+        "AddressOrigin identifies the method by which the IP "
+        "Address, Subnet Mask, and Gateway were assigned to the "
+        "IPProtocolEndpoint. \n"
+        "A value of 4 ``DHCP`` indicates that the values will be assigned "
+        "via DHCP. See RFC 2131 and related. \n"
+        "A value of 7 ``DHCPv6`` shall indicate the values will "
+        "be assigned using DHCPv6. See RFC 3315." ),
+      ValueMap { "4", "7" },
+      Values { "DHCP", "DHCPv6" },
+      ModelCorrespondence { "CIM_IPProtocolEndpoint.AddressOrigin" } ]
+    uint16 AddressOrigin = 4;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("LMI_OrderedIPAssignmentComponent is association between "
+    "LMI_IPAssignmentSettingData representing group of setting and "
+    "subclasses of LMI_IPAssignmentSettingData representing detailed part "
+    "of the setting.") ]
+class LMI_OrderedIPAssignmentComponent: CIM_OrderedComponent
+{
+    [ Override ( "GroupComponent" ),
+      Description ( "The parent element in the association." )]
+    LMI_IPAssignmentSettingData REF GroupComponent;
+
+    [ Override ( "PartComponent" ),
+      Description ( "The child element in the association." )]
+    LMI_IPAssignmentSettingData REF PartComponent;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_ExtendedStaticIPAssignmentSettingData: CIM_ExtendedStaticIPAssignmentSettingData
+{
+    [ Implemented(true), Override ( "AddressOrigin" ),
+      Description (
+        "AddressOrigin identifies the method by which the IP "
+        "Address, Subnet Mask, and Gateway were assigned to the "
+        "IPProtocolEndpoint. A value of 2 indicates that the "
+        "application of the IPAssignmentSettingData instance does "
+        "not affect these properties." ),
+      ValueMap { "3" },
+      Values { "Static"} ]
+    uint16 AddressOrigin = 3;
+
+    [ Implemented(true), Write(true), Description(
+        "IP addresses to be statically assigned. Either IPv4 address array "
+        "or IPv6 address array shall be represented by this property. "
+        "If it is IPv6 array, then for each element, there will be "
+        "a corresponding element in IPv6SubnetPrefixLengths array. "
+        "If it is IPv4 array, then for each element, there will be "
+        "a corresponding element in SubnetMasks array."),
+      ArrayType ( "Indexed" ),
+      ModelCorrespondence { "CIM_IPAssignmentSettingData.ProtocolIFType" } ]
+    string IPAddresses[];
+
+    [ Implemented(true), Write(true), Description(
+        "IPv6SubnetPrefixLengths is used to identify the prefix length "
+        "of the IPv6Addresses"),
+      ArrayType("Indexed"),
+      ModelCorrespondence {
+          "CIM_ExtendedStaticIPAssignmentSettingData.IPAddresses" } ]
+    uint16 IPv6SubnetPrefixLengths[];
+
+    [ Implemented(true), Write(true), Description("The mask for the IPv4 address."),
+      ArrayType("Indexed"),
+      ModelCorrespondence {
+          "CIM_ExtendedStaticIPAssignmentSettingData.IPAddresses" } ]
+    string SubnetMasks[];
+
+    [ Implemented(true), Write(true), Description("IP Addresses for the Gateways") ]
+    string GatewayAddresses[];
+
+    [ Implemented(true), Write(true), Description("An enumeration that "
+        "describes the IP version."),
+      Values { "IPv4", "IPv6" },
+      ValueMap { "4096", "4097" },
+      ModelCorrespondence {"CIM_ProtocolEndpoint.ProtocolIFType"} ]
+    uint16 ProtocolIFType;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_IPConfigurationService: CIM_IPConfigurationService
+{
+    [ Implemented(true), Description("Apply the IP setting respresented by the "
+            "LMI_IPAssignmentSettingData to the specified IPNetworkConnection. "
+            "The settings may take effect or disable immediately or may be "
+            "set to take effect or disable in the next boot, depending on "
+            "system, IPNetworkConnection, Setting and the value specified for "
+            "Mode. This will reflect in the IsCurrent & IsNext "
+            "property of instances of LMI_IPElementSettingData "
+            "associating the SettingData with the IPNetworkConnection. "
+            "For cases, enabling one setting can result in automatic "
+            "disabling of another setting, it will be refelected "
+            "in the properties of ElementSettingData associating those settings "
+            "to the IPNetworkConnection. Refer the description for the Mode "
+            "parameter for more details."),
+      ValueMap { "0", "1", "2", "3", "4", "5", "4096" },
+      Values { "Completed with No Error", "Not Supported",
+            "Unknown/Unspecified Error", "Failed",
+            "Invalid Parameter", "Busy",
+            "Method Parameters Checked - Job Started" }
+    ]
+    uint32 ApplySettingToIPNetworkConnection(
+        [ Required, IN, Description("The IPAssignmentSettingData to apply.") ]
+        CIM_IPAssignmentSettingData REF SettingData,
+        [ IN, Description("This value is always ignored, present only for "
+          "API compatibility.") ]
+        CIM_IPVersionSettingData REF IPVersionSettingData,
+        [ Required, IN, Description("The IPNetworkConnection to which the "
+          "configuration will be applied") ]
+        CIM_IPNetworkConnection REF IPNetworkConnection,
+        [ Required, IN, Description (
+            "The mode in which the configuration need to be "
+            "applied to the IPNetworkConnection.\n"
+            "- ``Mode 0`` - implies use ``Mode 1`` if allowed, else ``Mode 2``.\n"
+            "- ``Mode 1`` - Results in ``IsNext = 1 (Is Next)``, "
+            "``IsCurrent = 1 (Is Current)`` for the CIM_ElementSettingData "
+            "associating the setting with IPNetworkConnection.\n"
+            "- ``Mode 2`` - Results in ``IsNext = 1 (Is Next)`` for the "
+            "CIM_ElementSettingData associating the setting with "
+            "IPNetworkConnection. The value of ``IsCurrent`` will not "
+            "be affected.\n"
+            "- ``Mode 3`` - implies use ``Mode 4`` if allowed, else ``Mode 5``.\n"
+            "- ``Mode 4`` - Results in ``IsNext = 2 (Is Not Next)``, "
+            "``IsCurrent = 2 (Is Not Current)`` for the CIM_ElementSettingData "
+            "associating the setting with IPNetworkConnection.\n"
+            "- ``Mode 5`` - Results in ``IsNext = 2 (Is Not Next)`` for "
+            "the CIM_ElementSettingData associating the setting with "
+            "IPNetworkConnection. The value of ``IsCurrent`` will not be affected.\n"
+            "- ``Mode 6`` - Results in ``IsNext = 3 (Is Next For Single "
+            "Use)`` for the CIM_ElementSettingData associating the "
+            "setting with IPNetworkConnection. The value of "
+            "IsCurrent will not be affected. To change the "
+            "``IsNext = 3 (Is Next For Single Use)`` for a Setting, "
+            "invoke the method with any of the other values for "
+            "the mode."
+            "- ``Mode 32768`` - Results in ``IsCurrent = 1 (Is Current)`` "
+            "for the CIM_ElementSettingData associating the setting with "
+            "IPNetworkConnection. The value of ``IsNext`` will not "
+            "be affected.\n"
+            "- ``Mode 32769`` - Results in ``IsCurrent = 2 (Is Not Current)`` "
+            "for the CIM_ElementSettingData associating the setting with "
+            "IPNetworkConnection. The value of ``IsNext`` will not "
+            "be affected.\n"),
+          ValueMap { "0", "1", "2", "3", "4", "5", "6", "32768", "32769" },
+          Values { "Mode 0", "Mode 1", "Mode 2", "Mode 3",
+             "Mode 4", "Mode 5", "Mode 6", "Mode 32768", "Mode 32769" } ]
+      uint16 Mode,
+        [ IN(false), OUT, Description("Reference to the job spawned if "
+            "the operation continues after the method returns. "
+            "(may be null if task completed).") ]
+        CIM_ConcreteJob REF Job
+    );
+
+    [ Description("Apply the configuration represented by the "
+            "IPAssignmentSettingData to the specified LANEndpoint. "
+            "This will result in the value of the IsCurrent property "
+            "of the CIM_ElementSettingData which associates the "
+            "specified CIM_IPAssignmentSettingData and specified "
+            "CIM_LANEndpoint have a value of \"true\". The IsCurrent "
+            "property of any other instances of "
+            "CIM_ElementSettingData which reference the specified "
+            "CIM_LANEndpoint and an instance of "
+            "CIM_IPAssignmentSettingData will have a value of "
+            "\"false\". Each instance of "
+            "CIM_StaticIPAssignmentSettingData which is aggregated "
+            "into the target CIM_IPAssignmentSettingData instance "
+            "will result in the creation of an instance of "
+            "CIM_IPProtocolEndpoint associated with the target "
+            "CIM_LANEndpoint instance via an instance of the "
+            "CIM_BindsTo association. The created "
+            "CIM_IPProtocolEndpoint instance will have the values "
+            "specified in the CIM_StaticIPAssignmentSettingData "
+            "instance."),
+       ValueMap { "0", "1", "2", "3", "4", "5", "4096" },
+       Values { "Completed with No Error", "Not Supported",
+            "Unknown/Unspecified Error", "Failed",
+            "Invalid Parameter", "Busy",
+            "Method Parameters Checked - Job Started" } ]
+   uint32 ApplySettingToLANEndpoint(
+        [ Required, IN, Description ("The IPAssignmentSettingData to apply." ) ]
+        CIM_IPAssignmentSettingData REF Configuration,
+        [ Required, IN, Description("The LANEndpoint to which the configuration "
+          "will be applied.")]
+        CIM_LANEndpoint REF Endpoint,
+        [ IN(false), OUT, Description(
+            "Reference to the job spawned if the operation "
+            "continues after the method returns. (may be null "
+            "if task completed)." )]
+        CIM_ConcreteJob REF Job);
+
+    [ Description("Apply the configuration represented by the "
+            "CIM_IPAssignmentSettingData to the specified "
+            "IPProtocolEndpoint. This will result in the value of the "
+            "IsCurrent property of the CIM_ElementSettingData which "
+            "associates the specified CIM_IPAssignmentSettingData and "
+            "specified CIM_IPProtocolEndpoint having a value of "
+            "\"true\". The IsCurrent property of any other instances "
+            "of CIM_ElementSettingData which reference the specified "
+            "CIM_IPProtocolEndpoint and an instance of "
+            "CIM_IPAssignmentSettingData will have a value of "
+            "\"false\". Each instance of CIM_IPAssignmentSettingData "
+            "which is aggregated into the target "
+            "CIM_IPAssignmentSettingData instance will be applied to "
+            "the CIM_ProtocolEndpoint to which it is associated via "
+            "an instance of CIM_ElementSettingData where the "
+            "CIM_ProtocolEndpoint is associated with the target "
+            "CIM_IPProtocolEndpoint via an instance of "
+            "CIM_EndpointIdentity."),
+       ValueMap { "0", "1", "2", "3", "4", "5", "4096" },
+       Values { "Completed with No Error", "Not Supported",
+            "Unknown/Unspecified Error", "Failed",
+            "Invalid Parameter", "Busy",
+            "Method Parameters Checked - Job Started" } ]
+   uint32 ApplySettingToIPProtocolEndpoint(
+        [ Required, IN, Description("The IPAssignmentSettingData to apply.") ]
+        CIM_IPAssignmentSettingData REF Configuration,
+        [ Required, IN, Description("The IPProtocolEndpoint to which the "
+            "configuration will be applied.") ]
+        CIM_IPProtocolEndpoint REF Endpoint,
+        [ IN(false), OUT, Description(
+            "Reference to the job spawned if the operation "
+            "continues after the method returns. This parameter "
+            "MUST NOT be null if a value of 4096 is returned. "
+            "This parameter MUST be null if any other value is "
+            "returned by the method.") ]
+      CIM_ConcreteJob REF Job);
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("LMI_HostedIPConfigurationService is an association between a "
+    "LMI_IPConfigurationService and the ComputerSystem on which the "
+    "functionality is located.") ]
+class LMI_HostedIPConfigurationService: CIM_HostedService
+{
+    [ Override("Antecedent"), Min(1), Max(1),
+      Description("The hosting System.") ]
+    CIM_ComputerSystem REF Antecedent;
+
+    [ Override("Dependent"), Weak,
+      Description("The Service IPConfigurationService on the System.") ]
+    LMI_IPConfigurationService REF Dependent;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"), Description(
+    "IPConfigurationServiceAffectsElement represents an association between "
+    "IPConfigurationService and the ManagedElements that might be affected "
+    "by its execution.") ]
+class LMI_IPConfigurationServiceAffectsElement: CIM_ServiceAffectsElement
+{
+    [ Key,
+      Description("The Managed Element that is affected by the Service.") ]
+    CIM_ManagedElement REF AffectedElement;
+
+    [ Key,
+      Description ("The Service that is affecting the ManagedElement.") ]
+    LMI_IPConfigurationService REF AffectingElement;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_NetworkRemoteServiceAccessPoint: CIM_RemoteServiceAccessPoint
+{
+    [ Implemented(true), Description("Access or addressing information or a "
+        "combination of this information for a remote connection. This "
+        "information can be a host name, network address, or similar "
+        "information.") ]
+    string AccessInfo;
+    [ Implemented(true), Description("An enumerated integer that describes the "
+        "format and interpretation of the AccessInfo property."),
+      ValueMap { "3", "4" },
+      Values { "IPv4 Address", "IPv6 Address" } ]
+    uint16 InfoFormat;
+
+    [ Implemented(true), Description("The AccessContext property identifies "
+        "the role this RemoteServiceAccessPoint is playing "
+        "in the hosting system."),
+      ValueMap { "2", "3" },
+      Values { "Default Gateway", "DNS Server" } ]
+    uint16 AccessContext;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_NetworkRemoteAccessAvailableToElement: CIM_RemoteAccessAvailableToElement
+{
+    [ Override("Antecedent"), Description("The remote server or system.") ]
+    LMI_NetworkRemoteServiceAccessPoint REF Antecedent;
+
+    [ Override("Dependent"), Description("The ServiceAccessPoint which has "
+        "knowledge of the remote server or system.") ]
+    CIM_ServiceAccessPoint REF Dependent;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking") ]
+class LMI_DNSProtocolEndpoint: CIM_DNSProtocolEndpoint
+{
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_NetworkSAPSAPDependency: CIM_SAPSAPDependency
+{
+
+    [ Override("Antecedent"),
+      Description("The required ServiceAccessPoint.") ]
+    CIM_ServiceAccessPoint REF Antecedent;
+
+    [ Override("Dependent"),
+      Description("The ServiceAccessPoint that is dependent on an "
+        "underlying SAP.") ]
+    CIM_ServiceAccessPoint REF Dependent;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_DNSSettingData: CIM_DNSSettingData
+{
+    [ Implemented(true), Override("AddressOrigin"), Description(
+        "AddressOrigin identifies the method by which the IP Address, "
+        "Subnet Mask, and Gateway were assigned to the IPProtocolEndpoint. "
+        "This is independent of the DNS configuration, thus this property "
+        "has the value of 2 (``Not Applicable``)."),
+      ValueMap { "2" },
+      Values { "Not Applicable" } ]
+    uint16 AddressOrigin;
+
+    [ Implemented(true), Write(true), Description("The DNS servers to contact. "
+        "The array ordering correlates to the order in which the DNS servers "
+        "will be contacted. If using DHCP, DNS servers obtained from DHCP will "
+        "be prepended to this array.\n"
+        "The RemoteServiceAccessPoints associated with "
+        "the DNSProtocolEndpoint with the value of the AccessContext "
+        "property being ``DNS Server`` represent the actual DNS Servers "
+        "being utilized by the DNS client."),
+       ArrayType("Ordered") ]
+    string DNSServerAddresses[];
+
+    [ Implemented(true), Write(true), Description("The DNS search domains. "
+        "The array ordering correlates to the order in which the search domains "
+        "will be used. If using DHCP, DNS search domains obtained from DHCP will "
+        "be prepended to this array.\n"),
+       ArrayType("Ordered") ]
+    string DNSSearchDomains[];
+
+    [ Implemented(true), Description("An enumeration that describes "
+        "the IP version."),
+      ValueMap { "4096", "4097" },
+      Values { "IPv4", "IPv6" },
+      ModelCorrespondence { "CIM_ProtocolEndpoint.ProtocolIFType" } ]
+    uint16 ProtocolIFType;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_NetworkEnabledLogicalElementCapabilities: CIM_EnabledLogicalElementCapabilities
+{
+    [ Implemented(true), Description(
+        "RequestedStatesSupported indicates the possible states "
+        "that can be requested when using the method "
+        "RequestStateChange on the EnabledLogicalElement." ),
+      ValueMap { "2", "3" },
+      Values { "Enabled", "Disabled" },
+      ModelCorrespondence { "CIM_EnabledLogicalElement.RequestStateChange" } ]
+    uint16 RequestedStatesSupported[];
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_NetworkElementCapabilities: CIM_ElementCapabilities
+{
+    [ Min(1), Description("The managed element.") ]
+    CIM_ManagedElement REF ManagedElement;
+    [ Override("Capabilities"), Key,
+      Description("The Capabilities object associated with the element.") ]
+    LMI_NetworkEnabledLogicalElementCapabilities REF Capabilities;
+    [ Implemented(true), Description("Characteristics provides descriptive "
+        "information about the Capabilities. When the value 2 ``Default`` is "
+        "specified, the associated Capabilities shall represent "
+        "the default capabilities of the associated Managed Element.\n"
+        "When the value 2 ``Default`` is not specified, the "
+        "Capabilities instance may represent the default "
+        "capabilities of the Managed Element.\n"
+        "When the value 3 ``Current`` is specified, the "
+        "associated Capabilities shall represent the current "
+        "capabilities of the associated Managed Element\n"
+        "When the value 3 ``Current`` is not specified, the "
+        "Capabilities instance may represent the current "
+        "capabilities of the Managed Element." ),
+       ValueMap { "2", "3" },
+       Values { "Default", "Current" } ]
+    uint16 Characteristics[];
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"), Description(
+    "LAGPort8023ad contains the configuration information for a "
+    "port (LANEndpoint) which is a member of a link aggregation. "
+    "This port aspect is associated to LANEndpoint using the "
+    "LinkAggregationConcreteIdentity relationship. A port may be attached "
+    "to an instance of LinkAggregator8023ad. This is described using the "
+    "LinkAggregationBindsTo association. The latter is described "
+    "in the IEEE 802.3ad document, Subclause 30.7.2.1.13, and maps the "
+    "information in MIB.IEEE|IEEE8023-LAG-MIB.dot3adAggPortAttachedAggID.") ]
+class LMI_LAGPort8023ad: CIM_LAGPort8023ad
+{
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_LinkAggregator8023ad: CIM_LinkAggregator8023ad
+{
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("Association between Link Aggregation master port and the "
+    "slave port") ]
+class LMI_LinkAggregationBindsTo: CIM_BindsTo
+{
+    [ Override("SystemElement"),
+      Description("Master port of Link Aggregation") ]
+    LMI_LinkAggregator8023ad REF Antecedent;
+
+    [ Override("SameElement"),
+      Description("Slave port of Link Aggregation") ]
+    LMI_LAGPort8023ad REF Dependent;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("Association between LANEndpoint and LAGPort8023ad.") ]
+class LMI_LinkAggregationConcreteIdentity: CIM_ConcreteIdentity
+{
+    [ Override("SystemElement"),
+      Description("LANEndpoint representing physical network port.") ]
+    LMI_LANEndpoint REF SystemElement;
+    [ Override("SameElement"),
+      Description("Representation of the member of link aggregation.") ]
+    LMI_LAGPort8023ad REF SameElement;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_NextHopIPRoute: CIM_NextHopIPRoute
+{
+    [ Implemented(true), Description(
+        "The address which serves as the destination to be reached.") ]
+    string DestinationAddress;
+
+    [ Implemented(true), Description(
+        "RouteMetric provides a numeric indication as to the "
+        "preference of this route, compared to other routes that "
+        "reach the same destination.") ]
+    uint16 RouteMetric;
+
+    [ Implemented(true), Description("Address of the next-hop router") ]
+    string NextHop;
+
+    [ Implemented(true), Description(
+        "The mask for the IPv4 destination address.") ]
+    string DestinationMask;
+
+    [ Implemented(true), Description (
+        "The prefix length for the IPv6 destination address.") ]
+    uint8 PrefixLength;
+
+    [ Implemented(true), Description("An enumeration that describes the "
+        "format of the address properties."),
+       ValueMap { "0", "1", "2" },
+       Values { "Unknown", "IPv4", "IPv6" } ]
+    uint16 AddressType;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_RouteUsesEndpoint: CIM_RouteUsesEndpoint
+{
+    [ Override("Antecedent"), Max(1),
+      Description("The endpoint used to reach the route\'s destination.") ]
+    LMI_IPProtocolEndpoint REF Antecedent;
+
+    [ Override("Dependent"), Description("The route using the endpoint.") ]
+    LMI_NextHopIPRoute REF Dependent;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_IPRouteSettingData: LMI_IPAssignmentSettingData
+{
+    [ Implemented(true), Write(true), Description(
+        "The address which serves as the destination to be reached.") ]
+    string DestinationAddress;
+
+    [ Implemented(true), Write(true), Description(
+        "RouteMetric provides a numeric indication as to the "
+        "preference of this route, compared to other routes that "
+        "reach the same destination.") ]
+    uint16 RouteMetric;
+
+    [ Implemented(true), Write(true), Description("Address of the next-hop "
+        "router") ]
+    string NextHop;
+
+    [ Implemented(true), Write(true), Description(
+        "The mask for the IPv4 destination address.") ]
+    string DestinationMask;
+
+    [ Implemented(true), Write(true), Description(
+        "The prefix length for the IPv6 destination address.") ]
+    uint8 PrefixLength;
+
+    [ Implemented(true), Write(true), Description("An enumeration that "
+        "describes the format of the address properties."),
+      ValueMap { "0", "1", "2" },
+      Values { "Unknown", "IPv4", "IPv6" } ]
+    uint16 AddressType;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_SwitchPort: CIM_SwitchPort
+{
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_EndpointIdentity: CIM_EndpointIdentity
+{
+    [ Override("SystemElement"), Description("SystemElement represents one "
+        "aspect of the Endpoint.") ]
+    CIM_ProtocolEndpoint REF SystemElement;
+
+    [ Override("SameElement"), Description("SameElement represents an "
+        "alternate aspect of the Endpoint.") ]
+    CIM_ProtocolEndpoint REF SameElement;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_SwitchService: CIM_SwitchService
+{
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_SwitchesAmong: CIM_SwitchesAmong
+{
+    [ Override("Antecedent"), Description("The switch port.") ]
+    LMI_SwitchPort REF Antecedent;
+
+    [ Override("Dependent"), Max(1), Description("The switching service.") ]
+    LMI_SwitchService REF Dependent;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"), Description(
+    "Master SettingData for bridging") ]
+class LMI_BridgingMasterSettingData: LMI_IPAssignmentSettingData
+{
+    [ Implemented(true), Write(true), Description("The name of the virtual "
+        "in-kernel bridging network interface") ]
+    string InterfaceName;
+
+    [ Implemented(true), Write(true), Description("Controls whether Spanning "
+        "Tree Protocol (STP) is enabled for this bridge.") ]
+    boolean STP;
+
+    [ Implemented(true), Write(true), Description("Sets the Spanning Tree "
+        "Protocol (STP) priority for this bridge. Lower values are 'better'; "
+        "the lowest priority bridge will be elected the root bridge.") ]
+    uint32 Priority;
+
+    [ Implemented(true), Write(true), Description("The Spanning Tree Protocol "
+        "(STP) forwarding delay."), Units("Seconds"), PUnit("second") ]
+    uint32 ForwardDelay;
+
+    [ Implemented(true), Write(true), Description("The Spanning Tree Protocol "
+        "(STP) hello time."), Units("Seconds"), PUnit("second") ]
+    uint32 HelloTime;
+
+    [ Implemented(true), Write(true), Description("The Spanning Tree Protocol "
+        "(STP) maximum message age."), Units("Seconds"), PUnit("second") ]
+    uint32 MaxAge;
+
+    [ Implemented(true), Write(true), Description("The ethernet MAC address "
+        "aging time."), Units("Seconds"), PUnit("second") ]
+    uint32 AgeingTime;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"), Description(
+    "Slave SettingData for bridging") ]
+class LMI_BridgingSlaveSettingData: LMI_IPAssignmentSettingData
+{
+    [ Implemented(true), Write(true), Description("The Spanning Tree Protocol "
+        "(STP) priority of this bridge port.") ]
+    uint32 Priority;
+
+    [ Implemented(true), Write(true), Description("The Spanning Tree Protocol "
+        "(STP) port cost for destinations via this port.") ]
+    uint32 PathCost;
+
+    [ Implemented(true), Write(true), Description("Enables or disabled "
+        "'hairpin mode' for the port, which allows frames to be sent back "
+        "out through the port the frame was received on.") ]
+    boolean HairpinMode;
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"), Description(
+    "Master SettingData for bonding.\n"
+    "See https://www.kernel.org/doc/Documentation/networking/bonding.txt for "
+    "detailed description of the configuration options.") ]
+class LMI_BondingMasterSettingData: LMI_IPAssignmentSettingData
+{
+    [ Implemented(true), Description("The name of the virtual in-kernel "
+        "bonding network interface") ]
+    string InterfaceName;
+
+    [ Implemented(true), Write(true), Description("Specifies one of the bonding policies.\n"
+        "``BalanceRR`` - Round-robin policy: Transmit packets in sequential "
+        "order from the first available slave through the last.  This mode "
+        "provides load balancing and fault tolerance. This is the default.\n"
+        "``ActiveBackup`` - Active-backup policy: Only one slave in the bond "
+        "is active.  A different slave becomes active if, and only if, the "
+        "active slave fails. The bond's MAC address is externally visible "
+        "on only one port (network adapter) to avoid confusing the switch."
+        "This mode provides fault tolerance.\n"
+        "``BalanceXOR`` - XOR policy: Transmit based on the selected transmit "
+        "hash policy.  This mode provides load balancing and fault tolerance.\n"
+        "``Broadcast`` - Broadcast policy: transmits everything on all slave "
+        "interfaces.  This mode provides fault tolerance.\n"
+        "``802.3AD`` - IEEE 802.3ad Dynamic link aggregation.  Creates "
+        "aggregation groups that share the same speed and duplex settings. "
+        "Utilizes all slaves in the active aggregator according to the "
+        "802.3ad specification.\n"
+        "``BalanceTLB`` - Adaptive transmit load balancing: channel bonding "
+        "that does not require any special switch support.  The outgoing "
+        "traffic is distributed according to the current load (computed "
+        "relative to the speed) on each slave.  Incoming traffic is received "
+        "by the current slave.  If the receiving slave fails, another slave "
+        "takes over the MAC address of the failed receiving slave.\n"
+        "``BalanceALB`` - Adaptive load balancing: includes BalanceTLB plus "
+        "receive load balancing (rlb) for IPV4 traffic, and does not require "
+        "any special switch support."),
+      ValueMap { "0", "1", "2", "3", "4", "5", "6" },
+      Values { "BalanceRR", "ActiveBackup", "BalanceXOR", "Broadcast",
+               "802.3AD", "BalanceTLB", "BalanceALB" } ]
+    uint16 Mode;
+
+    [ Implemented(true), Write(true), Description("Specifies the MII link "
+        "monitoring frequency in milliseconds. This determines how often the "
+        "link state of each slave is inspected for link failures. A value of "
+        "zero disables MII link monitoring. The default value is 0."),
+      Units("MilliSeconds"), PUnit("second * 10^-3") ]
+    uint64 MIIMon;
+
+    [ Implemented(true), Write(true), Description("Specifies the time, "
+        "in milliseconds, to wait before disabling a slave after a link "
+        "failure has been detected.  This option is only valid for the miimon "
+        "link monitor. The downdelay value should be a multiple of the miimon "
+        "value; if not, it will be rounded down to the nearest multiple. The "
+        "default value is 0."), Units("MilliSeconds"), PUnit("second * 10^-3") ]
+    uint64 DownDelay;
+
+    [ Implemented(true), Write(true), Description("Specifies the time, "
+        "in milliseconds, to wait before enabling a slave after a link "
+        "recovery has been detected. This option is only valid for the miimon "
+        "link monitor. The updelay value should be a multiple of the miimon "
+        "value; if not, it will be rounded down to the nearest multiple. The "
+        "default value is 0."), Units("MilliSeconds"), PUnit("second * 10^-3") ]
+    uint64 UpDelay;
+
+    [ Implemented(true), Write(true), Description("Specifies the ARP link "
+        "monitoring frequency in milliseconds. A value of 0 disables ARP "
+        "monitoring. The default value is 0."), Units("MilliSeconds"),
+      PUnit("second * 10^-3") ]
+    uint64 ARPInterval;
+
+    [ Implemented(true), Write(true), Description("Specifies the IP addresses "
+        "to use as ARP monitoring peers when arp_interval is > 0. The default "
+        "value is no IP addresses.") ]
+    string ARPIPTarget[];
+};
+
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"), Description(
+    "Slave SettingData for bonding") ]
+class LMI_BondingSlaveSettingData: LMI_IPAssignmentSettingData
+{
+};
+
+/****************
+ * INIDICATIONS *
+ ****************/
+[ Indication, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("LMI_NetworkInstCreation notifies when a new instance of one of "
+    "the following classes is created: LMI_IPAssignmentSettingData and "
+    "LMI_IPNetworkConnection.") ]
+class LMI_NetworkInstCreation: CIM_InstCreation
+{
+};
+
+[ Indication, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("LMI_NetworkInstModification notifies when an instance of one of "
+    "the following classes is modified: LMI_IPAssignmentSettingData and "
+    "LMI_IPNetworkConnection.\n"
+    "LMI_NetworkInstModification with LMI_IPNetworkConnection as "
+    "a ``SourceInstance`` is also used to notify that Setting has been "
+    "applied to IPNetworkConnection.") ]
+class LMI_NetworkInstModification: CIM_InstModification
+{
+};
+
+[ Indication, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0"),
+  Description("LMI_NetworkInstDeletion notifies when an instance of one of "
+    "the following classes is deleted: LMI_IPAssignmentSettingData and "
+    "LMI_IPNetworkConnection") ]
+class LMI_NetworkInstDeletion: CIM_InstDeletion
+{
+};
+
+/********
+ * JOBS *
+ ********/
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_NetworkJob: LMI_ConcreteJob
+{
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_OwningNetworkJobElement: LMI_OwningJobElement
+{
+    [ Key, Override("OwningElement") ]
+    CIM_ManagedElement REF OwningElement;
+
+    [ Key, Override("OwnedElement") ]
+    LMI_NetworkJob REF OwnedElement;
+};
+
+[ Association, Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+class LMI_AffectedNetworkJobElement: LMI_AffectedJobElement
+{
+    [ Key, Override("AffectedElement") ]
+    CIM_ManagedElement REF AffectedElement;
+
+    [ Key, Override("AffectingElement") ]
+    LMI_NetworkJob REF AffectingElement;
+};

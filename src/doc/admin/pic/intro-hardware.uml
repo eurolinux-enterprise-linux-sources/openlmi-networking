@@ -1,0 +1,22 @@
+@startuml
+
+object CIM_ComputerSystem {
+}
+
+object LMI_EthernetPort {
+    DeviceID = "em1"
+}
+
+object LMI_LANEndpoint {
+    Name = "em1"
+}
+
+object LMI_IPNetworkConnection {
+    Name = "em1"
+}
+
+CIM_ComputerSystem -- LMI_EthernetPort : LMI_NetworkSystemDevice
+LMI_EthernetPort -- LMI_LANEndpoint : LMI_NetworkDeviceSAPImplementation
+LMI_LANEndpoint -- LMI_IPNetworkConnection : LMI_EndpointForIPNetworkConnection
+
+@enduml

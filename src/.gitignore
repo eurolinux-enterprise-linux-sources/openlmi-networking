@@ -1,0 +1,6 @@
+build/
+*~
+*.kdev4
+*.pyc
+*.tar.gz
+

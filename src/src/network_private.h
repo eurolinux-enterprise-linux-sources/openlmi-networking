@@ -98,6 +98,7 @@ LMIResult network_priv_get_devices(Network *network);
 LMIResult network_priv_get_active_connections(Network *network);
 
 LMIResult network_priv_activate_connection(Network *network, const Port *port, const Connection *connection, Job **job);
+LMIResult network_priv_deactivate_connection(Network *network, const ActiveConnection *activeConnection, Job **job);
 
 LMIResult network_priv_create_connection(Network *network, Connection *connection);
 LMIResult network_priv_delete_connection(Network *network, Connection *connection);

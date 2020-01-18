@@ -26,10 +26,9 @@ import sys
 import os
 import pywbem
 import time
-import unittest
 import IPy
 
-from test_base import TestBase
+from test_base import TestBase, unittest
 
 class TestApplyConnection(TestBase):
     @classmethod
@@ -110,8 +109,7 @@ class TestApplyConnection(TestBase):
                 IPNetworkConnection=self.portref.path, Mode=pywbem.Uint16(1))
         self.assertIn(rc[0], [0, 4096], "Applying setting failed")
         if rc[0] == 4096: # Job started
-            job = self.wait_for_job(rc[1]["Job"])
-            self.assertEqual(job["JobState"], 7) # Completed
+            self.wait_for_job_completion(rc[1]["Job"])
 
         # Test values of IsNext and IsCurrent for all created connections
         for esd in self.wbemconnection.References(self.con1.path, ResultClass="LMI_IPElementSettingData"):
@@ -133,8 +131,7 @@ class TestApplyConnection(TestBase):
                 IPNetworkConnection=self.portref.path, Mode=pywbem.Uint16(2))
         self.assertIn(rc[0], [0, 4096], "Applying setting failed")
         if rc[0] == 4096: # Job started
-            job = self.wait_for_job(rc[1]["Job"])
-            self.assertEqual(job["JobState"], 7) # Completed
+            self.wait_for_job_completion(rc[1]["Job"])
 
         # Test values of IsNext and IsCurrent for all created connections
         for esd in self.wbemconnection.References(self.con1.path, ResultClass="LMI_IPElementSettingData"):
@@ -153,8 +150,7 @@ class TestApplyConnection(TestBase):
                 IPNetworkConnection=self.portref.path, Mode=pywbem.Uint16(4))
         self.assertIn(rc[0], [0, 4096], "Applying setting failed")
         if rc[0] == 4096: # Job started
-            job = self.wait_for_job(rc[1]["Job"])
-            self.assertEqual(job["JobState"], 7) # Completed
+            self.wait_for_job_completion(rc[1]["Job"])
 
         # Test values of IsNext and IsCurrent for all created connections
         for esd in self.wbemconnection.References(self.con1.path, ResultClass="LMI_IPElementSettingData") + \
@@ -175,9 +171,7 @@ class TestApplyConnection(TestBase):
                 IPNetworkConnection=self.portref.path, Mode=pywbem.Uint16(5))
         self.assertIn(rc[0], [0, 4096], "Applying setting failed")
         if rc[0] == 4096: # Job started
-            job = self.wait_for_job(rc[1]["Job"])
-            self.assertEqual(job["JobState"], 7) # Completed
-
+            self.wait_for_job_completion(rc[1]["Job"])
 
         # Test values of IsNext and IsCurrent for all created connections
         for esd in self.wbemconnection.References(self.con1.path, ResultClass="LMI_IPElementSettingData"):
@@ -199,9 +193,7 @@ class TestApplyConnection(TestBase):
                 IPNetworkConnection=self.portref.path, Mode=pywbem.Uint16(32768))
         self.assertIn(rc[0], [0, 4096], "Applying setting failed")
         if rc[0] == 4096: # Job started
-            job = self.wait_for_job(rc[1]["Job"])
-            self.assertEqual(job["JobState"], 7) # Completed
-
+            self.wait_for_job_completion(rc[1]["Job"])
 
         # Test values of IsNext and IsCurrent for all created connections
         for esd in self.wbemconnection.References(self.con1.path, ResultClass="LMI_IPElementSettingData"):
@@ -223,8 +215,7 @@ class TestApplyConnection(TestBase):
                 IPNetworkConnection=self.portref.path, Mode=pywbem.Uint16(32769))
         self.assertIn(rc[0], [0, 4096], "Applying setting failed")
         if rc[0] == 4096: # Job started
-            job = self.wait_for_job(rc[1]["Job"])
-            self.assertEqual(job["JobState"], 7) # Completed
+            self.wait_for_job_completion(rc[1]["Job"])
 
         # Test values of IsNext and IsCurrent for all created connections
         for esd in self.wbemconnection.References(self.con1.path, ResultClass="LMI_IPElementSettingData"):

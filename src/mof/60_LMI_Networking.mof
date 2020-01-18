@@ -634,7 +634,7 @@ class LMI_ExtendedStaticIPAssignmentSettingData: CIM_ExtendedStaticIPAssignmentS
     uint16 ProtocolIFType;
 };
 
-[ Provider("cmpi:cmpiLMI_Networking"), Version("0.1.0") ]
+[ Provider("cmpi:cmpiLMI_Networking"), Version("0.2.3") ]
 class LMI_IPConfigurationService: CIM_IPConfigurationService
 {
     [ Implemented(true), Description("Apply the IP setting respresented by the "
@@ -662,7 +662,7 @@ class LMI_IPConfigurationService: CIM_IPConfigurationService
         [ IN, Description("This value is always ignored, present only for "
           "API compatibility.") ]
         CIM_IPVersionSettingData REF IPVersionSettingData,
-        [ Required, IN, Description("The IPNetworkConnection to which the "
+        [ IN, Description("The IPNetworkConnection to which the "
           "configuration will be applied") ]
         CIM_IPNetworkConnection REF IPNetworkConnection,
         [ Required, IN, Description (

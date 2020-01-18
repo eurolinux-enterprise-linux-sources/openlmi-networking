@@ -62,11 +62,11 @@ static CMPIStatus LMI_HostedIPConfigurationServiceEnumInstances(
     CMPIStatus res = { CMPI_RC_OK, NULL };
     const char *ns = KNameSpace(cop);
 
-    CMPIObjectPath *ipConfigurationServiceOP = CIM_IPConfigurationServiceRefOP(_cb, ns);
+    CMPIObjectPath *ipConfigurationServiceOP = CIM_IPConfigurationServiceRefOP(_cb, cc, ns);
 
     LMI_HostedIPConfigurationService w;
     LMI_HostedIPConfigurationService_Init(&w, _cb, ns);
-    LMI_HostedIPConfigurationService_SetObjectPath_Antecedent(&w, lmi_get_computer_system());
+    LMI_HostedIPConfigurationService_SetObjectPath_Antecedent(&w, lmi_get_computer_system_safe(cc));
     LMI_HostedIPConfigurationService_SetObjectPath_Dependent(&w, ipConfigurationServiceOP);
 
     if (!ReturnInstance(cr, w)) {

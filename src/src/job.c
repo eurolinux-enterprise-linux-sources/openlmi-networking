@@ -46,14 +46,33 @@ Job *job_new(JobType type)
     return job;
 }
 
-void job_add_error(Job *job, const char *error)
+LMIResult job_add_error(Job *job, const char *error)
 {
-    job_errors_add(job->errors, strdup(error));
+    LMIResult res;
+    char *e = strdup(error);
+    if (e == NULL) {
+        error("Memory allocation failed");
+        return LMI_ERROR_MEMORY;
+    }
+    if ((res = job_errors_add(job->errors, e)) != LMI_SUCCESS) {
+        free(e);
+        return res;
+    }
+    return LMI_SUCCESS;
 }
 
-void job_add_affected_element(Job *job, JobAffectedElementType type, const char *id)
+LMIResult job_add_affected_element(Job *job, JobAffectedElementType type, const char *id)
 {
-    job_affected_elements_add(job->affected_elements, job_affected_element_new(type, id));
+    LMIResult res;
+    JobAffectedElement *e = job_affected_element_new(type, id);
+    if (e == NULL) {
+        return LMI_ERROR_MEMORY;
+    }
+    if ((res = job_affected_elements_add(job->affected_elements, e)) != LMI_SUCCESS) {
+        job_affected_element_free(e);
+        return res;
+    }
+    return LMI_SUCCESS;
 }
 
 void job_set_state(Job *job, JobState state)

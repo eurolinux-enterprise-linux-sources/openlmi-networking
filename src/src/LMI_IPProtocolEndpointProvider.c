@@ -84,10 +84,14 @@ static CMPIStatus LMI_IPProtocolEndpointEnumInstances(
 
         for (j = 0; j < addresses_length(ipconfig->addresses); ++j) {
             address = addresses_index(ipconfig->addresses, j);
-            asprintf(&name, "%s_%ld", port_get_id(port), j);
+            if (asprintf(&name, "%s_%zu", port_get_id(port), j) < 0) {
+                error("Memory allocation failed");
+                CMSetStatus(&res, CMPI_RC_ERR_FAILED);
+                break;
+            }
             LMI_IPProtocolEndpoint w;
             LMI_IPProtocolEndpoint_Init(&w, _cb, ns);
-            LMI_IPProtocolEndpoint_Set_SystemName(&w, get_system_name());
+            LMI_IPProtocolEndpoint_Set_SystemName(&w, lmi_get_system_name_safe(cc));
             LMI_IPProtocolEndpoint_Set_SystemCreationClassName(&w, get_system_creation_class_name());
             LMI_IPProtocolEndpoint_Set_CreationClassName(&w, LMI_IPProtocolEndpoint_ClassName);
             LMI_IPProtocolEndpoint_Set_Name(&w, name);

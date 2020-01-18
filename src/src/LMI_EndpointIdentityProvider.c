@@ -89,10 +89,10 @@ static CMPIStatus LMI_EndpointIdentityEnumInstances(
 
             LMI_EndpointIdentity_SetObjectPath_SystemElement(&w,
                     CIM_ProtocolEndpointRefOP(port_get_id(slave),
-                                              LMI_LANEndpoint_ClassName, _cb, ns));
+                                              LMI_LANEndpoint_ClassName, _cb, cc, ns));
             LMI_EndpointIdentity_SetObjectPath_SameElement(&w,
                     CIM_ProtocolEndpointRefOP(port_get_id(slave),
-                                              LMI_SwitchPort_ClassName, _cb, ns));
+                                              LMI_SwitchPort_ClassName, _cb, cc, ns));
 
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_EndpointIdentity_ClassName);

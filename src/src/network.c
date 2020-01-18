@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "activeconnection.h"
 #include "connection.h"
@@ -214,32 +215,25 @@ const Connections *network_get_connections(Network *network)
 
 LMIResult network_activate_connection(Network *network, const Port *port, const Connection *connection, Job **job)
 {
-    debug("network_activate_connection %s %s", port_get_id(port), connection->port != NULL ? port_get_id(connection->port) : "NULL");
+    debug("network_activate_connection %s %s", port != NULL ? port_get_id(port) : "NULL", connection->port != NULL ? port_get_id(connection->port) : "NULL");
     ConnectionType type = connection_get_type(connection);
-    if (type == CONNECTION_TYPE_BOND || type == CONNECTION_TYPE_BRIDGE) {
-        // Activate slave connection
-        const Connections *connections = network_get_connections(network);
-        Connection *c, *master;
-        // Find slave connection with given port
-        for (size_t i = 0; i < connections_length(connections); ++i) {
-            c = connections_index(connections, i);
-            master = connection_get_master_connection(c);
-            if (master != NULL && connection_get_id(master) != NULL &&
-                strcmp(connection_get_id(master), connection->id) == 0 &&
-                port_compare(connection_get_port(c), port)) {
-
-                return network_priv_activate_connection(network, port, c, job);
-            }
-        }
-        error("No slave connection for port %s and connection %s", port_get_id(port), connection_get_id(connection));
-        return LMI_ERROR_CONNECTION_INVALID;
+    if (port != NULL && (type == CONNECTION_TYPE_BOND || type == CONNECTION_TYPE_BRIDGE)) {
+        // Don't use port when activating Master bridge/bond setting data
+        port = NULL;
     }
-    if (connection->port != NULL && !port_compare(port, connection->port)) {
+
+    if (port != NULL && connection->port != NULL && !port_compare(port, connection->port)) {
         error("Port %s is not the same as port %s assigned to connection %s",
               port_get_id(port), port_get_id(connection->port), connection->id);
         return LMI_ERROR_CONNECTION_INVALID;
     }
     return network_priv_activate_connection(network, port, connection, job);
+}
+
+LMIResult network_deactivate_connection(Network *network, const ActiveConnection *activeConnection, Job **job)
+{
+    debug("network_deactivate_connection %s", active_connection_get_connection(activeConnection) != NULL ? connection_get_name(active_connection_get_connection(activeConnection)) : "NULL");
+    return network_priv_deactivate_connection(network, activeConnection, job);
 }
 
 const ActiveConnections *network_get_active_connections(Network *network)

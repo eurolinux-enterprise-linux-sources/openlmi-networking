@@ -24,7 +24,7 @@ if [[ "$tag" != "--dirty" ]];
 then
     # Making archive from git tag/commit, use git archive and inject pregenerated svgs
     archive="$(pwd)/$PKG-$VERSION.tar"
-    git --git-dir="$dir/.git" archive --format=tar --prefix="$PKG-$VERSION/" "$tag" | gzip "$archive"
+    git --git-dir="$dir/.git" archive --format=tar --prefix="$PKG-$VERSION/" "$tag" | gzip > "${archive}.gz"
 else
     # Working copy is dirty, we have to copy the files manually
     tempdir="$(mktemp -d)"

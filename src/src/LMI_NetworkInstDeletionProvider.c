@@ -68,7 +68,7 @@ void port_deleted_callback(Network *network, Port *port, void *data)
     // Get instance of deleted port
     LMI_IPNetworkConnection ip;
     LMI_IPNetworkConnection_Init(&ip, _cb, ns);
-    rc = port_to_IPNetworkConnection(port, &ip);
+    rc = port_to_IPNetworkConnection(port, &ip, network_get_background_context(network));
     if (!KOkay(rc)) {
         error("Unable to convert "
               LMI_IPNetworkConnection_ClassName

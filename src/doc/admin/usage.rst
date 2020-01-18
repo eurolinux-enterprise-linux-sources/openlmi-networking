@@ -287,6 +287,14 @@ values are:
 Bridging and bonding
 --------------------
 
+.. warning::
+    Bridge, bond and vlan support needs to be explicitly enabled when using
+    0.8 version of NetworkManager as a backend (for example on RHEL-6). Add following
+    line to the /etc/sysconfig/network file and restart NetworkManager
+
+    NM_BOND_BRIDGE_VLAN_ENABLED=yes
+
+
 Setting up
 ^^^^^^^^^^
 
@@ -306,16 +314,21 @@ Use following code to create and activate bond with eth0 and eth1 interfaces::
             Type=capability1.LMI_CreateIPSetting.TypeValues.Bonding,
             IPv4Type=capability1.LMI_CreateIPSetting.IPv4TypeValues.DHCP)
     setting = result.rparams["SettingData"].to_instance()
+    # Get first slave setting
+    slave1setting = setting.first_associator_name(ResultClass="LMI_BondingSlaveSettingData",
+                AssocClass="LMI_OrderedIPAssignmentComponent")
     # Enslave the second interface using the second capability
-    capability2.LMI_CreateSlaveSetting(MasterSettingData=setting)
+    result = capability2.LMI_CreateSlaveSetting(MasterSettingData=setting)
+    # Get second slave setting
+    slave2setting = result.rparams["SettingData"]
     service = ns.LMI_IPConfigurationService.first_instance()
     # Activate the bond
     service.SyncApplySettingToIPNetworkConnection(
-            SettingData=setting,
+            SettingData=slave1setting,
             IPNetworkConnection=interface1,
             Mode=32768)
     service.SyncApplySettingToIPNetworkConnection(
-            SettingData=setting,
+            SettingData=slave2setting,
             IPNetworkConnection=interface2,
             Mode=32768)
 

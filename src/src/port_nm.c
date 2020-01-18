@@ -40,6 +40,8 @@ typedef struct PortPriv {
     int nm_state;
     int nm_state_reason;
     Network *network; // Needed for ability to update properties when port state changes
+    DBusGProxy *ip4config_proxy;
+    DBusGProxy *ip6config_proxy;
 } PortPriv;
 
 void port_state_changed_cb(void *proxy, unsigned int state1, unsigned int state2, unsigned int state3, Port *port);
@@ -104,6 +106,8 @@ Port *port_new_from_objectpath(Network *network, const char *objectpath)
         port_free(port);
         return NULL;
     }
+    priv->ip4config_proxy = NULL;
+    priv->ip6config_proxy = NULL;
 
     GValue *v = dbus_get_property(priv->proxy, NULL, NM_DBUS_INTERFACE_DEVICE, "DeviceType");
     if (v == NULL) {
@@ -124,18 +128,24 @@ Port *port_new_from_objectpath(Network *network, const char *objectpath)
                 port->type = TYPE_BT;
                 priv->subinterface = NM_DBUS_INTERFACE_DEVICE_BLUETOOTH;
                 break;
+#ifdef NM_DBUS_INTERFACE_DEVICE_OLPC_MESH
             case NM_DEVICE_TYPE_OLPC_MESH:
                 port->type = TYPE_OLPC_MESH;
                 priv->subinterface = NM_DBUS_INTERFACE_DEVICE_OLPC_MESH;
                 break;
+#endif
+#ifdef NM_DBUS_INTERFACE_DEVICE_WIMAX
             case NM_DEVICE_TYPE_WIMAX:
                 port->type = TYPE_WIMAX;
                 priv->subinterface = NM_DBUS_INTERFACE_DEVICE_WIMAX;
                 break;
+#endif
+#ifdef NM_DBUS_INTERFACE_DEVICE_MODEM
             case NM_DEVICE_TYPE_MODEM:
                 port->type = TYPE_MODEM;
                 priv->subinterface = NM_DBUS_INTERFACE_DEVICE_MODEM;
                 break;
+#endif
             case NM_DEVICE_TYPE_INFINIBAND:
                 port->type = TYPE_INFINIBAND;
                 priv->subinterface = NM_DBUS_INTERFACE_DEVICE_INFINIBAND;
@@ -152,10 +162,12 @@ Port *port_new_from_objectpath(Network *network, const char *objectpath)
                 port->type = TYPE_VLAN;
                 priv->subinterface = NM_DBUS_INTERFACE_DEVICE_VLAN;
                 break;
+#ifdef NM_DBUS_INTERFACE_DEVICE_ADSL
             case NM_DEVICE_TYPE_ADSL:
                 port->type = TYPE_ADSL;
                 priv->subinterface = NM_DBUS_INTERFACE_DEVICE_ADSL;
                 break;
+#endif
 #ifdef NM_DBUS_INTERFACE_DEVICE_GENERIC
             case NM_DEVICE_TYPE_GENERIC:
                 port->type = TYPE_GENERIC;
@@ -178,6 +190,8 @@ Port *port_new_from_objectpath(Network *network, const char *objectpath)
         priv->subproxy = dbus_g_proxy_new_for_name(network_priv_get_dbus_connection(network), NM_SERVICE_DBUS, objectpath, priv->subinterface);
         dbus_g_proxy_add_signal(priv->subproxy, "PropertiesChanged", DBUS_TYPE_G_MAP_OF_VARIANT, G_TYPE_INVALID);
         dbus_g_proxy_connect_signal(priv->subproxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), port, NULL);
+    } else {
+        priv->subproxy = NULL;
     }
 
     if (port_read_properties(port) != LMI_SUCCESS) {
@@ -216,20 +230,24 @@ PortOperatingStatus port_status_from_nm_state(uint32_t state)
         case NM_DEVICE_STATE_NEED_AUTH:
         // The IP settings of the device are being requested and configured
         case NM_DEVICE_STATE_IP_CONFIG:
+#ifndef NM_VERSION_08
         // The device's IP connectivity ability is being determined
         case NM_DEVICE_STATE_IP_CHECK:
         // The device is waiting for secondary connections to be activated
         case NM_DEVICE_STATE_SECONDARIES:
+#endif
             return STATUS_STARTING;
             break;
         // The device is active
         case NM_DEVICE_STATE_ACTIVATED:
             return STATUS_IN_SERVICE;
             break;
+#ifndef NM_VERSION_08
         // The device's network connection is being torn down
         case NM_DEVICE_STATE_DEACTIVATING:
             return STATUS_STOPPING;
             break;
+#endif
         // The device is in a failure state following an attempt to activate it
         case NM_DEVICE_STATE_FAILED:
             return STATUS_ABORTED;
@@ -260,6 +278,14 @@ void port_priv_free(void *priv)
     }
     if (p->subproxy != NULL) {
         g_object_unref(p->subproxy);
+    }
+    if (p->ip4config_proxy) {
+        dbus_g_proxy_disconnect_signal(p->ip4config_proxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), NULL);
+        g_object_unref(p->ip4config_proxy);
+    }
+    if (p->ip6config_proxy) {
+        dbus_g_proxy_disconnect_signal(p->ip6config_proxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), NULL);
+        g_object_unref(p->ip6config_proxy);
     }
     free(p);
 }
@@ -309,6 +335,26 @@ Ports *port_priv_get_slaves(Network *network, const Port *port)
     return slaves;
 }
 
+void ipconfig_subscribe(Port *port, DBusGProxy **proxy, const char *ipconfig, const char *interface)
+{
+    if (*proxy && strcmp(dbus_g_proxy_get_path(*proxy), ipconfig) == 0) {
+        // We are already subscribed
+        return;
+    }
+    PortPriv *priv = port->priv;
+    if (*proxy) {
+        dbus_g_proxy_disconnect_signal(*proxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), port);
+        g_object_unref(*proxy);
+    }
+    *proxy = dbus_g_proxy_new_for_name(network_priv_get_dbus_connection(priv->network), NM_SERVICE_DBUS, ipconfig, interface);
+    if (*proxy == NULL) {
+        error("Unable to create DBus proxy: %s %s %s", NM_SERVICE_DBUS, ipconfig, interface);
+    } else {
+        dbus_g_proxy_add_signal(*proxy, "PropertiesChanged", DBUS_TYPE_G_MAP_OF_VARIANT, G_TYPE_INVALID);
+        dbus_g_proxy_connect_signal(*proxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), port, NULL);
+    }
+}
+
 LMIResult port_read_ipconfig(Port *port, const char *ip4config, const char *ip6config)
 {
     LMIResult res = LMI_SUCCESS;
@@ -332,6 +378,9 @@ LMIResult port_read_ipconfig(Port *port, const char *ip4config, const char *ip6c
     if (ip4config != NULL && strcmp(ip4config, "/") != 0) {
         ipproperties = dbus_get_properties(priv->proxy, ip4config, NM_DBUS_INTERFACE_IP4_CONFIG);
         if (ipproperties != NULL) {
+            // Subscribe to change
+            ipconfig_subscribe(port, &priv->ip4config_proxy, ip4config, NM_DBUS_INTERFACE_IP4_CONFIG);
+
             addresses = dbus_property_array(ipproperties, "Addresses");
             if (addresses != NULL) {
                 for (guint i = 0; i < addresses->len; ++i) {
@@ -374,6 +423,9 @@ LMIResult port_read_ipconfig(Port *port, const char *ip4config, const char *ip6c
     if (ip6config && strcmp(ip6config, "/") != 0) {
         ipproperties = dbus_get_properties(priv->proxy, ip6config, NM_DBUS_INTERFACE_IP6_CONFIG);
         if (ipproperties != NULL) {
+            // Subscribe to change
+            ipconfig_subscribe(port, &priv->ip6config_proxy, ip6config, NM_DBUS_INTERFACE_IP6_CONFIG);
+
             addresses = dbus_property_array(ipproperties, "Addresses");
 
             if (addresses) {
@@ -648,6 +700,7 @@ const char *port_priv_get_state_reason(const Port *port)
             return "The modem could not be found";
         case NM_DEVICE_STATE_REASON_BT_FAILED:
             return "The Bluetooth connection failed or timed out";
+#ifndef NM_VERSION_08
         case NM_DEVICE_STATE_REASON_GSM_SIM_NOT_INSERTED:
             return "GSM Modem's SIM Card not inserted";
         case NM_DEVICE_STATE_REASON_GSM_SIM_PIN_REQUIRED:
@@ -656,10 +709,12 @@ const char *port_priv_get_state_reason(const Port *port)
             return "GSM Modem's SIM Puk required";
         case NM_DEVICE_STATE_REASON_GSM_SIM_WRONG:
             return "GSM Modem's SIM wrong";
+#endif
         case NM_DEVICE_STATE_REASON_INFINIBAND_MODE:
             return "InfiniBand device does not support connected mode";
         case NM_DEVICE_STATE_REASON_DEPENDENCY_FAILED:
             return "A dependency of the connection failed";
+#ifndef NM_VERSION_08
         case NM_DEVICE_STATE_REASON_BR2684_FAILED:
             return "Problem with the RFC 2684 Ethernet over ADSL bridge";
         case NM_DEVICE_STATE_REASON_MODEM_MANAGER_UNAVAILABLE:
@@ -668,6 +723,7 @@ const char *port_priv_get_state_reason(const Port *port)
             return "The WiFi network could not be found";
         case NM_DEVICE_STATE_REASON_SECONDARY_CONNECTION_FAILED:
             return "A secondary connection of the base connection failed";
+#endif
     }
     return NULL;
 }

@@ -76,7 +76,7 @@ static CMPIStatus LMI_NetworkElementCapabilitiesEnumInstances(
         // Capabilities of LMI_EthernetPort
         LMI_NetworkElementCapabilities w;
         LMI_NetworkElementCapabilities_Init(&w, _cb, ns);
-        LMI_NetworkElementCapabilities_SetObjectPath_ManagedElement(&w, CIM_NetworkPortRefOP(port_get_id(port), LMI_EthernetPort_ClassName, _cb, ns));
+        LMI_NetworkElementCapabilities_SetObjectPath_ManagedElement(&w, CIM_NetworkPortRefOP(port_get_id(port), LMI_EthernetPort_ClassName, _cb, cc, ns));
         LMI_NetworkEnabledLogicalElementCapabilitiesRef r;
         LMI_NetworkEnabledLogicalElementCapabilitiesRef_Init(&r, _cb, ns);
         LMI_NetworkEnabledLogicalElementCapabilitiesRef_Set_InstanceID(&r, ORGID ":NetworkPortEnabledLogicalElementCapabilities");
@@ -90,7 +90,7 @@ static CMPIStatus LMI_NetworkElementCapabilitiesEnumInstances(
 
         // Capabilities of LMI_LANEndpoint
         LMI_NetworkElementCapabilities_Init(&w, _cb, ns);
-        LMI_NetworkElementCapabilities_SetObjectPath_ManagedElement(&w, CIM_LANEndpointRefOP(port_get_id(port), LMI_LANEndpoint_ClassName, _cb, ns));
+        LMI_NetworkElementCapabilities_SetObjectPath_ManagedElement(&w, CIM_LANEndpointRefOP(port_get_id(port), LMI_LANEndpoint_ClassName, _cb, cc, ns));
         LMI_NetworkEnabledLogicalElementCapabilitiesRef_Init(&r, _cb, ns);
         LMI_NetworkEnabledLogicalElementCapabilitiesRef_Set_InstanceID(&r, ORGID ":NetworkLANEnabledLogicalElementCapabilities");
         LMI_NetworkElementCapabilities_Set_Capabilities(&w, &r);

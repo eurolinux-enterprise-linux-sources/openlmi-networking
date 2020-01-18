@@ -1,7 +1,13 @@
+# interop namepsace for tog-pegasus, sfcbd always uses root/interop
+%global interop root/interop
+%if 0%{?rhel} == 6
+%global interop root/PG_InterOp
+%endif
+
 %global logfile %{_localstatedir}/log/openlmi-install.log
 
 Name:           openlmi-networking
-Version:        0.2.1
+Version:        0.3.0
 Release:        1%{?dist}
 Summary:        CIM providers for network management
 
@@ -14,7 +20,7 @@ Provides:       cura-networking%{?_isa} = %{version}-%{release}
 Obsoletes:      cura-networking < 0.0.5-1
 
 BuildRequires:  cmake
-BuildRequires:  openlmi-providers-devel >= 0.7.0
+BuildRequires:  openlmi-providers-devel >= 0.5.0
 BuildRequires:  konkretcmpi-devel >= 0.9.1
 BuildRequires:  sblim-cmpi-devel
 BuildRequires:  cim-schema
@@ -29,7 +35,7 @@ Requires:       python2
 # sblim-sfcb or tog-pegasus
 Requires:       cim-server
 # Require openlmi-providers because of registration scripts
-Requires:       openlmi-providers >= 0.7.0
+Requires:       openlmi-providers >= 0.5.0
 
 %description
 %{name} is set of CMPI providers for network management using
@@ -85,9 +91,11 @@ cp -r doc/admin/pic/*.svg $RPM_BUILD_ROOT/%{_docdir}/%{name}/admin_guide/pic/ ||
 # If upgrading, deregister old version
 if [ "$1" -gt 1 ]; then
     # delete indication filters
-    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop unregister \
+    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop -c sfcbd unregister \
         %{_datadir}/%{name}/70_LMI_NetworkingIndicationFilters.mof || :;
-    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop -c tog-pegasus unregister \
+    %{_bindir}/openlmi-mof-register --just-mofs -n %{interop} -c tog-pegasus unregister \
+        %{_datadir}/%{name}/70_LMI_NetworkingIndicationFilters.mof || :;
+    %{_bindir}/openlmi-mof-register --just-mofs -n %{interop} -c tog-pegasus unregister \
         %{_datadir}/%{name}/90_LMI_Networking_Profile.mof || :;
     %{_bindir}/openlmi-mof-register -v %{version} unregister \
         %{_datadir}/%{name}/60_LMI_Networking.mof \
@@ -102,9 +110,11 @@ if [ "$1" -ge 1 ]; then
         %{_datadir}/%{name}/60_LMI_Networking.mof \
         %{_datadir}/%{name}/60_LMI_Networking.reg || :;
     # install indication filters
-    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop register \
+    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop -c sfcbd register \
         %{_datadir}/%{name}/70_LMI_NetworkingIndicationFilters.mof || :;
-    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop  -c tog-pegasus register \
+    %{_bindir}/openlmi-mof-register --just-mofs -n %{interop} -c tog-pegasus register \
+        %{_datadir}/%{name}/70_LMI_NetworkingIndicationFilters.mof || :;
+    %{_bindir}/openlmi-mof-register --just-mofs -n %{interop} -c tog-pegasus register \
         %{_datadir}/%{name}/90_LMI_Networking_Profile.mof || :;
 fi >> %logfile 2>&1
 
@@ -112,9 +122,11 @@ fi >> %logfile 2>&1
 # Deregister only if not upgrading
 if [ "$1" -eq 0 ]; then
     # delete indication filters
-    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop unregister \
+    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop -c sfcbd unregister \
         %{_datadir}/%{name}/70_LMI_NetworkingIndicationFilters.mof || :;
-    %{_bindir}/openlmi-mof-register --just-mofs -n root/interop -c tog-pegasus unregister \
+    %{_bindir}/openlmi-mof-register --just-mofs -n %{interop} -c tog-pegasus unregister \
+        %{_datadir}/%{name}/70_LMI_NetworkingIndicationFilters.mof || :;
+    %{_bindir}/openlmi-mof-register --just-mofs -n %{interop} -c tog-pegasus unregister \
         %{_datadir}/%{name}/90_LMI_Networking_Profile.mof || :;
     %{_bindir}/openlmi-mof-register -v %{version} unregister \
         %{_datadir}/%{name}/60_LMI_Networking.mof \
@@ -125,8 +137,16 @@ fi >> %logfile 2>&1
 
 
 %changelog
+* Thu Sep 04 2014 Radek Novacek <rnovacek@redhat.com> 0.3.0-1
+- Version 0.3.0
+
+* Tue Jun 17 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-1
+- Verion 0.2.2
+- Use PG_InterOp on RHEL-6 with tog-pegasus
+
 * Mon Nov 04 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-1
 - Version 0.2.1
+- Require openlmi-providers-0.4.1
 
 * Mon Oct 14 2013 Radek Novacek <rnovacek@redhat.com> 0.2.0-1
 - Version 0.2.0

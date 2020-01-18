@@ -20,6 +20,7 @@
 
 #include <check.h>
 #include <stdlib.h>
+#include "globals.h"
 #include "test_globals.h"
 #include "test_activeconnection.h"
 #include "test_connection.h"

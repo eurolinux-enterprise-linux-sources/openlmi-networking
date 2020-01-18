@@ -1,10 +1,8 @@
 
 import sys
-from test_base import TestBase
+from test_base import TestBase, unittest
 import pywbem
-import unittest
 import time
-
 
 class TestIndications(TestBase):
     #def setUp(self):

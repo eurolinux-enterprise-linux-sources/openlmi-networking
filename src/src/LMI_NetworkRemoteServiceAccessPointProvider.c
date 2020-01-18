@@ -78,7 +78,7 @@ static CMPIStatus LMI_NetworkRemoteServiceAccessPointEnumInstances(
     LMI_NetworkRemoteServiceAccessPoint_Init(&w, _cb, ns);
     LMI_NetworkRemoteServiceAccessPoint_Set_CreationClassName(&w, LMI_NetworkRemoteServiceAccessPoint_ClassName);
     LMI_NetworkRemoteServiceAccessPoint_Set_SystemCreationClassName(&w, get_system_creation_class_name());
-    LMI_NetworkRemoteServiceAccessPoint_Set_SystemName(&w, get_system_name());
+    LMI_NetworkRemoteServiceAccessPoint_Set_SystemName(&w, lmi_get_system_name_safe(cc));
 
     network_lock(network);
     const Ports *ports = network_get_ports(network);
@@ -92,7 +92,12 @@ static CMPIStatus LMI_NetworkRemoteServiceAccessPointEnumInstances(
                 continue;
             }
 
-            asprintf(&name, "%s_gateway_%ld", port_get_id(port), j);
+            if (asprintf(&name, "%s_gateway_%zu", port_get_id(port), j) < 0) {
+                error("Memory allocation failed");
+                CMSetStatus(&res, CMPI_RC_ERR_FAILED);
+                break;
+            }
+
             LMI_NetworkRemoteServiceAccessPoint_Set_Name(&w, name);
             LMI_NetworkRemoteServiceAccessPoint_Set_AccessContext(&w, LMI_NetworkRemoteServiceAccessPoint_AccessContext_Default_Gateway);
             LMI_NetworkRemoteServiceAccessPoint_Set_AccessInfo(&w, address->default_gateway);
@@ -108,7 +113,11 @@ static CMPIStatus LMI_NetworkRemoteServiceAccessPointEnumInstances(
         }
         for (j = 0; j < dns_servers_length(ipconfig->dns_servers); ++j) {
             dns_server = dns_servers_index(ipconfig->dns_servers, j);
-            asprintf(&name, "%s_dns_%ld", port_get_id(port), j);
+            if (asprintf(&name, "%s_dns_%zu", port_get_id(port), j) < 0) {
+                error("Memory allocation failed");
+                CMSetStatus(&res, CMPI_RC_ERR_FAILED);
+                break;
+            }
             LMI_NetworkRemoteServiceAccessPoint_Set_Name(&w, name);
             LMI_NetworkRemoteServiceAccessPoint_Set_AccessContext(&w, LMI_NetworkRemoteServiceAccessPoint_AccessContext_DNS_Server);
             LMI_NetworkRemoteServiceAccessPoint_Set_AccessInfo(&w, dns_server->server);

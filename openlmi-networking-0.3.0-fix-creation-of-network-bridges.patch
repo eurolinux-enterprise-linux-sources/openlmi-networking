@@ -1,0 +1,36 @@
+commit 9f2f09a0e387a48675a4e60c80d41d7ca9e21fca
+Author: Radek Novacek <rnovacek@redhat.com>
+Date:   Fri Nov 14 12:33:08 2014 +0100
+
+    Fix creation of network bridges
+    
+    Recent change in NetworkManager caused that bridging slave connection
+    cannot be created without specifying its settiing.
+
+diff --git a/src/LMI_IPNetworkConnectionCapabilitiesProvider.c b/src/LMI_IPNetworkConnectionCapabilitiesProvider.c
+index acc2b76..fa2bdd3 100644
+--- a/src/LMI_IPNetworkConnectionCapabilitiesProvider.c
++++ b/src/LMI_IPNetworkConnectionCapabilitiesProvider.c
+@@ -276,6 +276,7 @@ static LMIResult enslave(Network *network, Connection *master_connection, Port *
+     if ((res = connection_set_port(connection, port)) != LMI_SUCCESS) {
+         goto err;
+     }
++    Setting *setting;
+     switch (connection_get_type(master_connection)) {
+         case CONNECTION_TYPE_BOND:
+             if ((res = connection_set_master_connection(connection, master_connection, SETTING_TYPE_BOND)) != LMI_SUCCESS) {
+@@ -286,6 +287,14 @@ static LMIResult enslave(Network *network, Connection *master_connection, Port *
+             if ((res = connection_set_master_connection(connection, master_connection, SETTING_TYPE_BRIDGE)) != LMI_SUCCESS) {
+                 goto err;
+             }
++            if ((setting = setting_new(SETTING_TYPE_BRIDGE_SLAVE)) == NULL) {
++                res = LMI_ERROR_MEMORY;
++                goto err;
++            }
++            if ((res = connection_add_setting(connection, setting)) != LMI_SUCCESS) {
++                setting_free(setting);
++                goto err;
++            }
+             break;
+         default:
+             error("Connection with type %d can't be master connection", connection_get_type(master_connection));

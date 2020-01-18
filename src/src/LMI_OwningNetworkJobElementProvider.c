@@ -46,7 +46,7 @@ static CMPIStatus LMI_OwningNetworkJobElementEnumInstances(
 
     LMI_IPConfigurationServiceRef confserv;
     LMI_IPConfigurationServiceRef_Init(&confserv, _cb, ns);
-    LMI_IPConfigurationServiceRef_Set_SystemName(&confserv, get_system_name());
+    LMI_IPConfigurationServiceRef_Set_SystemName(&confserv, lmi_get_system_name_safe(cc));
     LMI_IPConfigurationServiceRef_Set_SystemCreationClassName(&confserv, get_system_creation_class_name());
     LMI_IPConfigurationServiceRef_Set_CreationClassName(&confserv, LMI_IPConfigurationService_ClassName);
     LMI_IPConfigurationServiceRef_Set_Name(&confserv, LMI_IPConfigurationService_ClassName);

@@ -2,7 +2,6 @@
 import sys
 from test_base import TestBase
 import pywbem
-import unittest
 import datetime
 import time
 
@@ -50,7 +49,7 @@ class TestIndications(TestBase):
 
         self.assertEqual(job["DeleteOnCompletion"], True)
         self.assertTrue(job["TimeBeforeRemoval"].is_interval)
-        self.assertEqual(job["TimeBeforeRemoval"].timedelta.total_seconds(), 300)
+        self.assertEqual(job["TimeBeforeRemoval"].timedelta.seconds, 300)
 
         # Check LMI_OwningNetworkJobElement association
         assoc = self.wbemconnection.Associators(job.path, AssocClass="LMI_OwningNetworkJobElement")
@@ -78,7 +77,7 @@ class TestIndications(TestBase):
         # Check if the job is modified
         job = self.wbemconnection.GetInstance(job.path)
         self.assertTrue(job["TimeBeforeRemoval"].is_interval)
-        self.assertEqual(job["TimeBeforeRemoval"].timedelta.total_seconds(), 3)
+        self.assertEqual(job["TimeBeforeRemoval"].timedelta.seconds, 3)
 
         # Wait for job deletion
         time.sleep(5)

@@ -23,6 +23,9 @@
 
 struct in6_addr;
 
+// Disable glib deprecation warnings
+#define GLIB_DISABLE_DEPRECATION_WARNINGS
+
 #include <openlmi.h>
 
 // Unique identification of organization, should be trademarked, but meh.
@@ -33,9 +36,6 @@ struct in6_addr;
 #include <stdlib.h>
 #include <stdbool.h>
 
-// Disable glib deprecation warnings
-#define GLIB_DISABLE_DEPRECATION_WARNINGS
-#include <glib.h>
 #include <glib-object.h>
 
 #include <assert.h>

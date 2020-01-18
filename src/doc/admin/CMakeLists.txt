@@ -11,5 +11,7 @@ add_custom_target(doc
         -c ${CMAKE_CURRENT_SOURCE_DIR}
         -D "version=${OPENLMI_VERSION}" -D "release=${OPENLMI_VERSION}"
         ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR}/html
-    DEPENDS doc-mof doc-pic
 )
+
+add_dependencies(doc
+    doc-mof doc-pic)

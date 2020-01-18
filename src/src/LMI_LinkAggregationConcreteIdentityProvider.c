@@ -82,9 +82,9 @@ static CMPIStatus LMI_LinkAggregationConcreteIdentityEnumInstances(
             for (j = 0; j < ports_length(slaves); ++j) {
                 slave = ports_index(slaves, j);
                 LMI_LinkAggregationConcreteIdentity_SetObjectPath_SystemElement(&w,
-                        LMI_LANEndpointRefOP(port_get_id(slave), LMI_LANEndpoint_ClassName, _cb, ns));
+                        LMI_LANEndpointRefOP(port_get_id(slave), LMI_LANEndpoint_ClassName, _cb, cc, ns));
                 LMI_LinkAggregationConcreteIdentity_SetObjectPath_SameElement(&w,
-                        LMI_LAGPort8023adRefOP(port_get_id(slave), LMI_LAGPort8023ad_ClassName, _cb, ns));
+                        LMI_LAGPort8023adRefOP(port_get_id(slave), LMI_LAGPort8023ad_ClassName, _cb, cc, ns));
 
                 if (!ReturnInstance(cr, w)) {
                     error("Unable to return instance of class " LMI_LinkAggregationConcreteIdentity_ClassName);

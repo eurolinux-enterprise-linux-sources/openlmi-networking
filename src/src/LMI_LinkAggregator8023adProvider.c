@@ -72,7 +72,7 @@ static CMPIStatus LMI_LinkAggregator8023adEnumInstances(
             LMI_LinkAggregator8023ad_Set_Name(&w, port_get_id(port));
             LMI_LinkAggregator8023ad_Set_CreationClassName(&w, LMI_LinkAggregator8023ad_ClassName);
             LMI_LinkAggregator8023ad_Set_SystemCreationClassName(&w, get_system_creation_class_name());
-            LMI_LinkAggregator8023ad_Set_SystemName(&w, get_system_name());
+            LMI_LinkAggregator8023ad_Set_SystemName(&w, lmi_get_system_name_safe(cc));
 
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_LinkAggregator8023ad_ClassName);

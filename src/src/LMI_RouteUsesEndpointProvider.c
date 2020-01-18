@@ -84,21 +84,21 @@ static CMPIStatus LMI_RouteUsesEndpointEnumInstances(
             if (!KOkay(res)) {
                 break;
             }
-            if (asprintf(&name, "%s_%ld", port_get_id(port), j) < 0) {
+            if (asprintf(&name, "%s_%zu", port_get_id(port), j) < 0) {
                 error("Memory allocation failed");
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);
                 break;
             }
             LMI_IPProtocolEndpointRef endpoint;
             LMI_IPProtocolEndpointRef_Init(&endpoint, _cb, ns);
-            LMI_IPProtocolEndpointRef_Set_SystemName(&endpoint, get_system_name());
+            LMI_IPProtocolEndpointRef_Set_SystemName(&endpoint, lmi_get_system_name_safe(cc));
             LMI_IPProtocolEndpointRef_Set_SystemCreationClassName(&endpoint, get_system_creation_class_name());
             LMI_IPProtocolEndpointRef_Set_CreationClassName(&endpoint, "LMI_IPProtocolEndpoint");
             LMI_IPProtocolEndpointRef_Set_Name(&endpoint, name);
             free(name);
 
             for (k = 0; k < routes_length(ipconfig->routes); ++k) {
-                if (asprintf(&name, "%s_%ld", port_get_id(port), k) < 0) {
+                if (asprintf(&name, "%s_%zu", port_get_id(port), k) < 0) {
                     error("Memory allocation failed");
                     CMSetStatus(&res, CMPI_RC_ERR_FAILED);
                     break;

@@ -332,7 +332,7 @@ KUint32 LMI_IPAssignmentSettingData_LMI_AddStaticIPRoute(
         res = LMI_ERROR_MEMORY;
         goto err;
     }
-    if (asprintf(&id, "%s_%ld", settingid, setting_get_routes_length(setting) - 1) < 0) {
+    if (asprintf(&id, "%s_%zu", settingid, setting_get_routes_length(setting) - 1) < 0) {
         CMSetStatusWithChars(_cb, status, CMPI_RC_ERR_FAILED, "Memory allocation failed");
         res = LMI_ERROR_MEMORY;
         goto err;

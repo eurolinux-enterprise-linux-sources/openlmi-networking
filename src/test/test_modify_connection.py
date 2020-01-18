@@ -26,10 +26,9 @@ import sys
 import os
 import pywbem
 import time
-import unittest
 import IPy
 
-from test_base import TestBase
+from test_base import TestBase, unittest
 
 
 class TestModifyConnections(TestBase):

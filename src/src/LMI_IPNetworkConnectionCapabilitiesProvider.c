@@ -239,19 +239,30 @@ static int get_bridge_id(Network *network)
 static LMIResult enslave(Network *network, Connection *master_connection, Port *port, char **slave_id)
 {
     LMIResult res;
-    // find number of slaves of master_connection
+
+    // find the name for connection - take the lower number that is not taken
+    // and has format '<master> Slave <nr>'
     const Connections *connections = network_get_connections(network);
-    const char *master_id = connection_get_id(master_connection);
-    size_t count = 0;
-    for (size_t i = 0; i < connections_length(connections); ++i) {
-        if (strcmp(connection_get_id(connections_index(connections, i)), master_id) ==0) {
-            count++;
+    char *name = NULL;
+    size_t i;
+    bool free_name;
+    // We must limit the number of tries somehow, 1024 should be enough
+    for (size_t count = 1; count <= 1024; count++) {
+        free(name);
+        if (asprintf(&name, "%s Slave %zu", connection_get_name(master_connection), count) < 0) {
+            res = LMI_ERROR_MEMORY;
+            return res;
         }
-    }
-    char *name;
-    if (asprintf(&name, "%s Slave %ld", connection_get_name(master_connection), count + 1) < 0) {
-        res = LMI_ERROR_MEMORY;
-        return res;
+        free_name = true;
+        for (i = 0; i < connections_length(connections); ++i) {
+            if (strcmp(connection_get_name(connections_index(connections, i)), name) == 0) {
+                free_name = false;
+                break;
+            }
+        }
+        if (free_name) {
+            break;
+        }
     }
     Connection *connection = connection_new(network, NULL, name);
     free(name);
@@ -620,9 +631,23 @@ KUint16 LMI_IPNetworkConnectionCapabilities_LMI_CreateSlaveSetting(
 
     // Return reference to LMI_IPAssignmentSettingData
     const char *ns = KNameSpace(LMI_IPNetworkConnectionCapabilitiesRef_ToObjectPath(self, NULL));
+
+    const char *classname;
+    switch (connection_get_type(master_connection)) {
+        case CONNECTION_TYPE_BRIDGE:
+            classname = LMI_BridgingSlaveSettingData_ClassName;
+            break;
+        case CONNECTION_TYPE_BOND:
+            classname = LMI_BondingSlaveSettingData_ClassName;
+            break;
+        default:
+            classname = LMI_IPAssignmentSettingData_ClassName;
+            break;
+    }
+
     LMI_IPAssignmentSettingDataRef ref;
     LMI_IPAssignmentSettingDataRef_Init(&ref, _cb, ns);
-    char *instanceid = id_to_instanceid(slave_id, LMI_IPAssignmentSettingData_ClassName);
+    char *instanceid = id_to_instanceid(slave_id, classname);
     free(slave_id);
     if (instanceid == NULL) {
         error("Memory allocation failed");
@@ -632,16 +657,7 @@ KUint16 LMI_IPNetworkConnectionCapabilities_LMI_CreateSlaveSetting(
         free(instanceid);
 
         CMPIObjectPath *cop = LMI_IPAssignmentSettingDataRef_ToObjectPath(&ref, NULL);
-        switch (connection_get_type(master_connection)) {
-            case CONNECTION_TYPE_BRIDGE:
-                CMSetClassName(cop, LMI_BridgingSlaveSettingData_ClassName);
-                break;
-            case CONNECTION_TYPE_BOND:
-                CMSetClassName(cop, LMI_BridgingSlaveSettingData_ClassName);
-                break;
-            default:
-                break;
-        }
+        CMSetClassName(cop, classname);
         KRef_SetObjectPath(SettingData, cop);
     }
 

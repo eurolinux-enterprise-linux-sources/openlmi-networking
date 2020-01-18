@@ -76,6 +76,12 @@ GHashTable *setting_to_hash(Setting *setting, char **key, LMIResult *res)
     switch (setting->type) {
         case SETTING_TYPE_IPv4:
         case SETTING_TYPE_IPv6:
+            // NetworkManager >= 0.9 has TRUE default value for 'may-fail'
+            // property, 0.8 has FALSE. In order to have same behaviour with
+            // both 0.8 and 0.9 version of NM, always force the TRUE value.
+            if ((*res = g_hash_table_insert_bool(hash, "may-fail", true)) != LMI_SUCCESS) {
+                goto err;
+            }
             switch (setting->typespec.ip.method) {
                 case SETTING_METHOD_DHCP:
                 case SETTING_METHOD_STATELESS:
@@ -314,20 +320,20 @@ GHashTable *setting_to_hash(Setting *setting, char **key, LMIResult *res)
                 goto err;
             }
             char s[15];
-            snprintf(s, 14, "%ld", setting->typespec.bond.miimon);
+            snprintf(s, 14, "%lu", setting->typespec.bond.miimon);
             g_hash_table_insert_string(option_hash, "miimon", s);
 
             if (setting->typespec.bond.downdelay != 0) {
-                snprintf(s, 14, "%ld", setting->typespec.bond.downdelay);
+                snprintf(s, 14, "%lu", setting->typespec.bond.downdelay);
                 g_hash_table_insert_string(option_hash, "downdelay", s);
             }
 
             if (setting->typespec.bond.updelay != 0) {
-                snprintf(s, 14, "%ld", setting->typespec.bond.updelay);
+                snprintf(s, 14, "%lu", setting->typespec.bond.updelay);
                 g_hash_table_insert_string(option_hash, "updelay", s);
             }
             if (setting->typespec.bond.arp_interval != 0) {
-                snprintf(s, 14, "%ld", setting->typespec.bond.arp_interval);
+                snprintf(s, 14, "%lu", setting->typespec.bond.arp_interval);
                 g_hash_table_insert_string(option_hash, "arp_interval", s);
             }
 
@@ -338,6 +344,12 @@ GHashTable *setting_to_hash(Setting *setting, char **key, LMIResult *res)
                 }
                 char *addresses, *p;
                 addresses = p = malloc(size * sizeof(char));
+                if (addresses == NULL) {
+                    error("Memory allocation failed");
+                    g_hash_table_unref(option_hash);
+                    *res = LMI_ERROR_MEMORY;
+                    goto err;
+                }
                 char *address;
                 for (i = 0; i < len; ++i) {
                     address = ip_addresses_index(setting->typespec.bond.arp_ip_target, i);

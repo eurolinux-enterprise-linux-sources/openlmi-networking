@@ -37,8 +37,10 @@ struct ActiveConnection
     Ports *ports;
     Network *network;
     ActiveConnectionStatus status;
+    /** Pointer to backend specific private data */
+    void *priv;
 };
 
-void activeconnection_priv_free(void *priv);
+void active_connection_priv_free(void *priv);
 
 #endif

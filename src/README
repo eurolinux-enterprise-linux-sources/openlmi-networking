@@ -32,6 +32,7 @@ You also need following programs/libraries with development packages installed:
 * konkretcmpi(-devel)
 * sblim-cmpi-devel
 * glib2(-devel)
+* dbus-glib(-devel)
 * check(-devel)
 * NetworkManager(-devel)
 * libuuid(-devel)

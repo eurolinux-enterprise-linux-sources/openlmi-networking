@@ -150,7 +150,7 @@ LMIResult connection_set_master_connection(Connection *connection, const Connect
  * \return \p Connection master connection or NULL if the slave doesn't
  *     have master connection
  */
-Connection *connection_get_master_connection(Connection *connection);
+Connection *connection_get_master_connection(const Connection *connection);
 
 /**
  * Add new setting to the list of the settings.

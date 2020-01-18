@@ -87,13 +87,14 @@ int convert_operating_status(PortOperatingStatus status, IPNetworkConnectionType
 
 CMPIStatus port_to_IPNetworkConnection(
     const Port *port,
-    LMI_IPNetworkConnection *w)
+    LMI_IPNetworkConnection *w,
+    const CMPIContext *cc)
 {
     CMPIStatus res = { CMPI_RC_OK, NULL };
     LMI_IPNetworkConnection_Set_CreationClassName(w, LMI_IPNetworkConnection_ClassName);
     LMI_IPNetworkConnection_Set_Name(w, port_get_id(port));
     LMI_IPNetworkConnection_Set_SystemCreationClassName(w, get_system_creation_class_name());
-    LMI_IPNetworkConnection_Set_SystemName(w, get_system_name());
+    LMI_IPNetworkConnection_Set_SystemName(w, lmi_get_system_name_safe(cc));
 
     LMI_IPNetworkConnection_Set_OperatingStatus(w,
             convert_operating_status(port_get_operating_status(port),
@@ -105,13 +106,14 @@ CMPIStatus port_to_IPNetworkConnection(
 
 CMPIStatus port_to_LANEndpoint(
     const Port *port,
-    LMI_LANEndpoint *w)
+    LMI_LANEndpoint *w,
+    const CMPIContext *cc)
 {
     CMPIStatus res = { CMPI_RC_OK, NULL };
     LMI_LANEndpoint_Set_CreationClassName(w, LMI_LANEndpoint_ClassName);
     LMI_LANEndpoint_Set_Name(w, port_get_id(port));
     LMI_LANEndpoint_Set_SystemCreationClassName(w, get_system_creation_class_name());
-    LMI_LANEndpoint_Set_SystemName(w, get_system_name());
+    LMI_LANEndpoint_Set_SystemName(w, lmi_get_system_name_safe(cc));
 
     LMI_LANEndpoint_Set_MACAddress(w, port_get_mac(port));
     LMI_LANEndpoint_Null_NameFormat(w);
@@ -165,10 +167,11 @@ CMPIStatus port_to_LANEndpoint(
 
 CMPIStatus port_to_EthernetPort(
     const Port *port,
-    LMI_EthernetPort *w)
+    LMI_EthernetPort *w,
+    const CMPIContext *cc)
 {
     CMPIStatus res = { CMPI_RC_OK, NULL };
-    LMI_EthernetPort_Set_SystemName(w, get_system_name());
+    LMI_EthernetPort_Set_SystemName(w, lmi_get_system_name_safe(cc));
     LMI_EthernetPort_Set_CreationClassName(w, LMI_EthernetPort_ClassName);
     LMI_EthernetPort_Set_SystemCreationClassName(w, get_system_creation_class_name());
     LMI_EthernetPort_Set_DeviceID(w, port_get_id(port));
@@ -247,6 +250,7 @@ CMPIStatus IPNetworkConnectionEnumInstances(
     Network *network,
     const CMPIResult *cr,
     const CMPIBroker *cb,
+    const CMPIContext *cc,
     const char *ns)
 {
     CMPIStatus res = { CMPI_RC_OK, NULL };
@@ -260,7 +264,7 @@ CMPIStatus IPNetworkConnectionEnumInstances(
             LMI_IPNetworkConnection w;
             LMI_IPNetworkConnection_Init(&w, cb, ns);
 
-            res = port_to_IPNetworkConnection(port, &w);
+            res = port_to_IPNetworkConnection(port, &w, cc);
             if (!KOkay(res)) {
                 error("Unable to convert connection to "
                       LMI_IPNetworkConnection_ClassName
@@ -277,7 +281,7 @@ CMPIStatus IPNetworkConnectionEnumInstances(
         } else if (type == LMI_LANEndpoint_Type) {
             LMI_LANEndpoint w;
             LMI_LANEndpoint_Init(&w, cb, ns);
-            res = port_to_LANEndpoint(port, &w);
+            res = port_to_LANEndpoint(port, &w, cc);
             if (!KOkay(res)) {
                 error("Unable to convert connection to "
                       LMI_LANEndpoint_ClassName
@@ -295,7 +299,7 @@ CMPIStatus IPNetworkConnectionEnumInstances(
             LMI_EthernetPort w;
             LMI_EthernetPort_Init(&w, cb, ns);
 
-            res = port_to_EthernetPort(port, &w);
+            res = port_to_EthernetPort(port, &w, cc);
             if (!KOkay(res)) {
                 error("Unable to convert connection to "
                       LMI_EthernetPort_ClassName

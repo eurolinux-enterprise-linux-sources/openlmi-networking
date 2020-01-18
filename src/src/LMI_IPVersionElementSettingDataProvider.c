@@ -70,11 +70,11 @@ static CMPIStatus LMI_IPVersionElementSettingDataEnumInstances(
     LMI_IPVersionElementSettingData_Init(&w, _cb, ns);
 
     char *ipv4instanceid = id_to_instanceid("IPv4", LMI_IPVersionSettingData_ClassName);
-    CMPIObjectPath *ipv4OP = CIM_IPVersionSettingDataRefOP(ipv4instanceid, LMI_IPVersionSettingData_ClassName, _cb, ns);
+    CMPIObjectPath *ipv4OP = CIM_IPVersionSettingDataRefOP(ipv4instanceid, LMI_IPVersionSettingData_ClassName, _cb, cc, ns);
     char *ipv6instanceid = id_to_instanceid("IPv6", LMI_IPVersionSettingData_ClassName);
-    CMPIObjectPath *ipv6OP = CIM_IPVersionSettingDataRefOP(ipv6instanceid, LMI_IPVersionSettingData_ClassName, _cb, ns);
+    CMPIObjectPath *ipv6OP = CIM_IPVersionSettingDataRefOP(ipv6instanceid, LMI_IPVersionSettingData_ClassName, _cb, cc, ns);
 
-    LMI_IPVersionElementSettingData_SetObjectPath_ManagedElement(&w, lmi_get_computer_system());
+    LMI_IPVersionElementSettingData_SetObjectPath_ManagedElement(&w, lmi_get_computer_system_safe(cc));
 
     LMI_IPVersionElementSettingData_SetObjectPath_SettingData(&w, ipv4OP);
     if (!ReturnInstance(cr, w)) {
@@ -92,7 +92,7 @@ static CMPIStatus LMI_IPVersionElementSettingDataEnumInstances(
     network_lock(network);
     const Ports *ports = network_get_ports(network);
     for (size_t i = 0; i < ports_length(ports); ++i) {
-        networkOP = CIM_IPNetworkConnectionRefOP(port_get_id(ports_index(ports, i)), LMI_IPNetworkConnection_ClassName, _cb, ns);
+        networkOP = CIM_IPNetworkConnectionRefOP(port_get_id(ports_index(ports, i)), LMI_IPNetworkConnection_ClassName, _cb, cc, ns);
         LMI_IPVersionElementSettingData_SetObjectPath_ManagedElement(&w, networkOP);
 
         LMI_IPVersionElementSettingData_SetObjectPath_SettingData(&w, ipv4OP);

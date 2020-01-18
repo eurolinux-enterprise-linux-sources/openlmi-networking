@@ -97,7 +97,7 @@ void *port_pre_changed_callback(Network *network, Port *port, void *data)
     // Get instance of changed port
     LMI_IPNetworkConnection ip;
     LMI_IPNetworkConnection_Init(&ip, _cb, ns);
-    rc = port_to_IPNetworkConnection(port, &ip);
+    rc = port_to_IPNetworkConnection(port, &ip, network_get_background_context(network));
     if (!KOkay(rc)) {
         error("Unable to convert port to "
               LMI_IPNetworkConnection_ClassName
@@ -123,7 +123,7 @@ void port_changed_callback(Network *network, Port *port, void *data, void *pre_d
     // Get instance of changed port
     LMI_IPNetworkConnection ip;
     LMI_IPNetworkConnection_Init(&ip, _cb, ns);
-    rc = port_to_IPNetworkConnection(port, &ip);
+    rc = port_to_IPNetworkConnection(port, &ip, network_get_background_context(network));
     if (!KOkay(rc)) {
         error("Unable to convert port to "
               LMI_IPNetworkConnection_ClassName

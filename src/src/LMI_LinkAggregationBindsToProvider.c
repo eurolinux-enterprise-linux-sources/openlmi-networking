@@ -82,9 +82,9 @@ static CMPIStatus LMI_LinkAggregationBindsToEnumInstances(
             for (j = 0; j < ports_length(slaves); ++j) {
                 slave = ports_index(slaves, j);
                 LMI_LinkAggregationBindsTo_SetObjectPath_Antecedent(&w,
-                        LMI_LinkAggregator8023adRefOP(port_get_id(port), LMI_LinkAggregator8023ad_ClassName, _cb, ns));
+                        LMI_LinkAggregator8023adRefOP(port_get_id(port), LMI_LinkAggregator8023ad_ClassName, _cb, cc, ns));
                 LMI_LinkAggregationBindsTo_SetObjectPath_Dependent(&w,
-                        LMI_LAGPort8023adRefOP(port_get_id(slave), LMI_LAGPort8023ad_ClassName, _cb, ns));
+                        LMI_LAGPort8023adRefOP(port_get_id(slave), LMI_LAGPort8023ad_ClassName, _cb, cc, ns));
 
                 if (!ReturnInstance(cr, w)) {
                     error("Unable to return instance of class " LMI_LinkAggregationBindsTo_ClassName);

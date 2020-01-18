@@ -121,6 +121,7 @@ START_TEST(test_setting_hashing)
     setting_free(setting);
     setting_free(setting2);
     free(key);
+    key = NULL;
 
     // IPv6 static setting
     setting = setting_new(SETTING_TYPE_IPv6);

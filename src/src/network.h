@@ -95,14 +95,23 @@ const Connections *network_get_connections(Network *network);
 const ActiveConnections *network_get_active_connections(Network *network);
 
 /**
- * Activate given connection on specific port.
+ * Activate given connection on specific port (if given).
  *
  * \param network a \p Network structure.
- * \param port make connection active on this port.
+ * \param port make connection active on this port or NULL.
  * \param connection activate this connection.
  * \return \p LMIResult with LMI_SUCCESS or error code on failure
  */
 LMIResult network_activate_connection(Network *network, const Port *port, const Connection *connection, Job **job);
+
+/**
+ * Deactivate given activeConnection
+ *
+ * \param network a \p Network structure.
+ * \param activeConnection deactive this \p ActiveConnection
+ * \return \p LMIResult with LMI_SUCCESS or error code on failure
+ */
+LMIResult network_deactivate_connection(Network *network, const ActiveConnection *activeConnection, Job **job);
 
 /**
  * Create connection.

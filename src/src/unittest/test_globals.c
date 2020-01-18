@@ -169,7 +169,10 @@ START_TEST(test_macConversions)
     fail_unless(macToGByteArray("hello, world") == NULL);
     fail_unless(macToGByteArray("00:AA:00:BBB:00:00") == NULL);
     // int overflow
-    asprintf(&str, "%X0:00:00:00:00:00", INT_MAX);
+    if (asprintf(&str, "%X0:00:00:00:00:00", INT_MAX) < 0) {
+        ck_abort_msg("asprintf failed");
+        return;
+    }
     fail_unless(macToGByteArray(str) == NULL);
     free(str);
 
@@ -262,6 +265,9 @@ typedef struct Test {
 Test *test_new(void)
 {
     Test *test = malloc(sizeof(Test));
+    if (test == NULL) {
+        return NULL;
+    }
     test->id = 42;
     return test;
 }

@@ -191,38 +191,28 @@ char *uuid_gen(void)
 
 GByteArray *ip6ArrayFromString(const char *addr)
 {
-    void *data;
-    if (addr != NULL) {
-        struct in6_addr *ip = ip6FromString(addr);
-        if (ip == NULL) {
-            data = calloc(sizeof(guint8), 16);
-            if (data == NULL) {
-                error("Memory allocation failed");
-                return NULL;
-            }
-            return g_byte_array_new_take(data, 16);
-        } else {
-            GByteArray *array = g_byte_array_sized_new(16);
-            if (array == NULL) {
-                free(ip);
-                error("Memory allocation failed");
-                return NULL;
-            }
-            if (g_byte_array_append(array, ip->s6_addr, 16) == NULL) {
-                error("Memory allocation failed");
-                free(ip);
-                return NULL;
-            }
-            free(ip);
-            return array;
-        }
-    } else {
-        data = calloc(sizeof(guint8), 16);
+    GByteArray *array = g_byte_array_sized_new(16);
+    if (array == NULL) {
+        error("Memory allocation failed");
+        return NULL;
+    }
+
+    struct in6_addr *ip;
+    if (addr == NULL || (ip = ip6FromString(addr)) == NULL) {
+        guint8 *data = calloc(sizeof(guint8), 16);
         if (data == NULL) {
             error("Memory allocation failed");
+            g_byte_array_free(array, true);
+            free(data);
             return NULL;
         }
-        return g_byte_array_new_take(data, 16);
+        array = g_byte_array_append(array, data, 16);
+        free(data);
+        return array;
+    } else {
+        array = g_byte_array_append(array, ip->s6_addr, 16);
+        free(ip);
+        return array;
     }
 }
 
@@ -401,7 +391,7 @@ char *id_from_instanceid_with_index(const char *instanceid, const char *cls, siz
         free(id);
         return NULL;
     }
-    if (sscanf(indexpos, "_%lu", index) < 1) {
+    if (sscanf(indexpos, "_%zu", index) < 1) {
         error("Wrong InstanceID format: %s", instanceid);
         free(id);
         return NULL;
@@ -423,7 +413,7 @@ char *id_from_instanceid_with_index2(const char *instanceid, const char *cls, si
         free(id);
         return NULL;
     }
-    if (sscanf(indexpos, "_%lu_%lu", index1, index2) < 2) {
+    if (sscanf(indexpos, "_%zu_%zu", index1, index2) < 2) {
         error("Wrong InstanceID format: %s", instanceid);
         free(id);
         return NULL;
@@ -449,7 +439,7 @@ char *id_to_instanceid_with_index(const char *id, const char *cls, size_t index)
     assert(id != NULL);
     assert(cls != NULL);
     char *instanceid;
-    if (asprintf(&instanceid, ORGID ":%s:%s_%ld", cls, id, index) < 0) {
+    if (asprintf(&instanceid, ORGID ":%s:%s_%zu", cls, id, index) < 0) {
         return NULL;
     }
     return instanceid;
@@ -460,7 +450,7 @@ char *id_to_instanceid_with_index2(const char *id, const char *cls, size_t index
     assert(id != NULL);
     assert(cls != NULL);
     char *instanceid;
-    if (asprintf(&instanceid, ORGID ":%s:%s_%ld_%ld", cls, id, index1, index2) < 0) {
+    if (asprintf(&instanceid, ORGID ":%s:%s_%zu_%zu", cls, id, index1, index2) < 0) {
         return NULL;
     }
     return instanceid;

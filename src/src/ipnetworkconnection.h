@@ -29,15 +29,18 @@
 
 CMPIStatus port_to_IPNetworkConnection(
     const Port *port,
-    LMI_IPNetworkConnection *w);
+    LMI_IPNetworkConnection *w,
+    const CMPIContext *cc);
 
 CMPIStatus port_to_LANEndpoint(
     const Port *port,
-    LMI_LANEndpoint *w);
+    LMI_LANEndpoint *w,
+    const CMPIContext *cc);
 
 CMPIStatus port_to_EthernetPort(
     const Port *port,
-    LMI_EthernetPort *w);
+    LMI_EthernetPort *w,
+    const CMPIContext *cc);
 
 typedef enum {
     LMI_IPNetworkConnection_Type,
@@ -50,6 +53,7 @@ CMPIStatus IPNetworkConnectionEnumInstances(
     Network *network,
     const CMPIResult* cr,
     const CMPIBroker *cb,
+    const CMPIContext *cc,
     const char *ns);
 
 #endif

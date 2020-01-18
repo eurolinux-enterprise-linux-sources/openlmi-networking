@@ -64,7 +64,7 @@ static CMPIStatus LMI_EthernetPortEnumInstances(
 {
     Network *network = mi->hdl;
     const char *ns = KNameSpace(cop);
-    return IPNetworkConnectionEnumInstances(LMI_EthernetPort_Type, network, cr, _cb, ns);
+    return IPNetworkConnectionEnumInstances(LMI_EthernetPort_Type, network, cr, _cb, cc, ns);
 }
 
 static CMPIStatus LMI_EthernetPortGetInstance(

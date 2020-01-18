@@ -27,8 +27,8 @@ import sys
 import os
 import pywbem
 import time
-import unittest
 import IPy
+import subprocess
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -38,9 +38,17 @@ from test_base import TestBase
 
 STATIC, DHCP = range(2)
 
-OBJECT_PATH = "/org/freedesktop/NetworkManager/Settings"
-IFACE_SETTINGS = "org.freedesktop.NetworkManager.Settings"
-IFACE_CONNECTION = "org.freedesktop.NetworkManager.Settings.Connection"
+# NetworkManager 0.8 uses different ObjectPath/Interface
+nm_version = subprocess.Popen(['rpm', '-q', 'NetworkManager'], stdout=subprocess.PIPE).communicate()[0]
+if nm_version.startswith('NetworkManager-0.8'):
+    OBJECT_PATH = "/org/freedesktop/NetworkManagerSettings"
+    IFACE_SETTINGS = "org.freedesktop.NetworkManagerSettings"
+    IFACE_CONNECTION = "org.freedesktop.NetworkManagerSettings.Connection"
+else:
+    OBJECT_PATH = "/org/freedesktop/NetworkManager/Settings"
+    IFACE_SETTINGS = "org.freedesktop.NetworkManager.Settings"
+    IFACE_CONNECTION = "org.freedesktop.NetworkManager.Settings.Connection"
+
 
 def intToIPv4(ip):
     return ".".join([str(x) for x in (ip % 256, (ip >> 8) % 256, (ip >> 16) % 256, (ip >> 24) % 256)])
@@ -202,7 +210,7 @@ class TestCreatingConnections(TestBase):
         self.subscribe(self.filter_name, "select * from LMI_NetworkInstModification where SourceInstance isa LMI_NetworkJob")
 
     def findDBusConnection(self, caption):
-        for path in self.settings.ListConnections():
+        for path in self.settings.ListConnections(dbus_interface=IFACE_SETTINGS):
             settings = self.bus.call_blocking(self.bus_name, path, IFACE_CONNECTION, "GetSettings", "", [])
             c = settings.get("connection", {}).get("id", None)
             if c is None:
@@ -413,14 +421,14 @@ class TestCreatingConnections(TestBase):
         self.assertIn(rc[0], [0, 4096])
         if rc[0] == 4096:
             # Job is started, wait for finish
-            indication = self.get_indication(10)
-            self.assertEqual(indication["SourceInstance"].classname, "LMI_NetworkJob")
+            job = self.wait_for_job(rc[1]["Job"], 60)
+            self.assertEqual(job.classname, "LMI_NetworkJob")
             # Save the error message if the method fails
             errors = []
-            if indication["SourceInstance"]["JobState"] != 7:
+            if job["JobState"] != 7:
                 for err in self.wbemconnection.InvokeMethod("GetErrors", rc[1]["Job"])[1]['Errors']:
                     errors.append(err["Message"])
-            self.assertEqual(indication["SourceInstance"]["JobState"], 7, # Completed
+            self.assertEqual(job["JobState"], 7, # Completed
                              "Unable to activate connection: %s" % ("; ".join(errors)))
     ## Static
 

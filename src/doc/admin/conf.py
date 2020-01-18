@@ -30,7 +30,7 @@ includeClasses = True
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.ifconfig', 'sphinx.ext.autodoc', 'sphinx.ext.todo', 'sphinx.ext.viewcode']
+extensions = ['sphinx.ext.ifconfig', 'sphinx.ext.autodoc', 'sphinx.ext.todo']
 
 plantuml_output_format='svg'
 plantuml_latex_output_format='pdf'

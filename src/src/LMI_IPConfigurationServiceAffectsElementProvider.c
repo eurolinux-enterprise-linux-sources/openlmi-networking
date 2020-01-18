@@ -71,7 +71,7 @@ static CMPIStatus LMI_IPConfigurationServiceAffectsElementEnumInstances(
     IPConfig *ipconfig;
     char *name;
 
-    CMPIObjectPath *affectingElementOP = CIM_IPConfigurationServiceRefOP(_cb, ns);
+    CMPIObjectPath *affectingElementOP = CIM_IPConfigurationServiceRefOP(_cb, cc, ns);
     LMI_IPConfigurationServiceAffectsElement w;
     LMI_IPConfigurationServiceAffectsElement_Init(&w, _cb, ns);
     LMI_IPConfigurationServiceAffectsElement_SetObjectPath_AffectingElement(&w, affectingElementOP);
@@ -86,7 +86,7 @@ static CMPIStatus LMI_IPConfigurationServiceAffectsElementEnumInstances(
         port = ports_index(ports, i);
         ipconfig = port_get_ipconfig(port);
         LMI_IPConfigurationServiceAffectsElement_SetObjectPath_AffectedElement(&w,
-                CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, ns));
+                CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, cc, ns));
         if (!ReturnInstance(cr, w)) {
             error("Unable to return instance of class " LMI_IPConfigurationServiceAffectsElement_ClassName);
             CMSetStatus(&res, CMPI_RC_ERR_FAILED);
@@ -97,14 +97,14 @@ static CMPIStatus LMI_IPConfigurationServiceAffectsElementEnumInstances(
         }
 
         for (j = 0; j < addresses_length(ipconfig->addresses); ++j) {
-            if (asprintf(&name, "%s_%ld", port_get_id(port), j) < 0) {
+            if (asprintf(&name, "%s_%zu", port_get_id(port), j) < 0) {
                 error("Memory allocation failed");
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);
                 break;
             }
 
             LMI_IPConfigurationServiceAffectsElement_SetObjectPath_AffectedElement(&w,
-                    CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, ns));
+                    CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, cc, ns));
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_IPConfigurationServiceAffectsElement_ClassName);
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);
@@ -117,7 +117,7 @@ static CMPIStatus LMI_IPConfigurationServiceAffectsElementEnumInstances(
         }
         if (dns_servers_length(ipconfig->dns_servers) > 0) {
             LMI_IPConfigurationServiceAffectsElement_SetObjectPath_AffectedElement(&w,
-                    CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_DNSProtocolEndpoint_ClassName, _cb, ns));
+                    CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_DNSProtocolEndpoint_ClassName, _cb, cc, ns));
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_IPConfigurationServiceAffectsElement_ClassName);
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);

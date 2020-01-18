@@ -112,6 +112,14 @@ static CMPIStatus LMI_BondingMasterSettingDataModifyInstance(
         KReturn2(_cb, ERR_FAILED, "Invalid type of the SettingData");
     }
     BondSetting *bond = setting_get_bond_setting(setting);
+    if (w.InterfaceName.exists && !w.InterfaceName.null) {
+        free(bond->interface_name);
+        if ((bond->interface_name = strdup(w.InterfaceName.chars)) == NULL) {
+            connection_free(connection);
+            network_unlock(network);
+            KReturn2(_cb, ERR_FAILED, "Memory allocation failed");
+        }
+    }
     if (w.Mode.exists && !w.Mode.null) {
         if (w.Mode.value > 6) {
             connection_free(connection);

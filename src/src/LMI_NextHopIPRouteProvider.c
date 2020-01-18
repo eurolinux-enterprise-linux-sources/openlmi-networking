@@ -81,7 +81,7 @@ static CMPIStatus LMI_NextHopIPRouteEnumInstances(
 
         for (j = 0; j < routes_length(ipconfig->routes); ++j) {
             route = routes_index(ipconfig->routes, j);
-            if (asprintf(&name, "%s_%ld", port_get_id(port), j) < 0) {
+            if (asprintf(&name, "%s_%zu", port_get_id(port), j) < 0) {
                 error("Memory allocation failed");
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);
                 break;

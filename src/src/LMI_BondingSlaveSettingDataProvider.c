@@ -2,6 +2,7 @@
 #include "LMI_BondingSlaveSettingData.h"
 #include "network.h"
 #include "ipassignmentsettingdata.h"
+#include "connection.h"
 
 static const CMPIBroker* _cb = NULL;
 
@@ -77,7 +78,42 @@ static CMPIStatus LMI_BondingSlaveSettingDataModifyInstance(
     const CMPIInstance* ci,
     const char** properties)
 {
-    CMReturn(CMPI_RC_ERR_NOT_SUPPORTED);
+    LMI_BondingSlaveSettingDataRef ref;
+    if (!KOkay(LMI_BondingSlaveSettingDataRef_InitFromObjectPath(&ref, _cb, cop))) {
+        warn("Unable to convert object path to " LMI_BondingSlaveSettingData_ClassName);
+        KReturn(ERR_INVALID_PARAMETER);
+    }
+
+    LMI_BondingSlaveSettingData w;
+    LMI_BondingSlaveSettingData_InitFromInstance(&w, _cb, ci);
+
+    Network *network = mi->hdl;
+    char *id = id_from_instanceid(w.InstanceID.chars, LMI_BondingSlaveSettingData_ClassName);
+
+    network_lock(network);
+    const Connections *connections = network_get_connections(network);
+    Connection *old_connection = connections_find_by_id(connections, id);
+    free(id);
+    if (old_connection == NULL) {
+        network_unlock(network);
+        KReturn2(_cb, ERR_FAILED, "No such connection");
+    }
+
+    Connection *connection = connection_clone(old_connection);
+
+    if (w.Caption.exists && !w.Caption.null) {
+        connection_set_name(connection, w.Caption.chars);
+    }
+
+    connection_set_master_connection(connection, connection_get_master_connection(old_connection), SETTING_TYPE_BOND);
+
+    int rc = connection_update(old_connection, connection);
+    connection_free(connection);
+    network_unlock(network);
+    if (rc != 0) {
+        CMReturn(CMPI_RC_ERR_FAILED);
+    }
+    CMReturn(CMPI_RC_OK);
 }
 
 static CMPIStatus LMI_BondingSlaveSettingDataDeleteInstance(

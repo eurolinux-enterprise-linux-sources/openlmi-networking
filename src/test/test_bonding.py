@@ -2,7 +2,6 @@
 from test_base import TestBase
 import pywbem
 import time
-import unittest
 
 class TestBonding(TestBase):
     def setUp(self):
@@ -17,6 +16,7 @@ class TestBonding(TestBase):
         for le in les:
             if le["Name"] in self.ports and le["Name"] != "lo":
                 self.networkConnections.append(le)
+        print "Running test on: ", [le["Name"] for le in self.networkConnections]
         self.assertGreater(len(self.networkConnections), 1, "At least two ports required for bonding test")
 
         # Subscribe to indication
@@ -40,6 +40,15 @@ class TestBonding(TestBase):
         self.assertEqual(rc[0], 0)
         self.assertTrue(rc[1] is not None)
         settingData = self.wbemconnection.GetInstance(rc[1]["SettingData"])
+
+        slaves = self.wbemconnection.AssociatorNames(settingData.path,
+                ResultClass="LMI_BondingSlaveSettingData",
+                AssocClass="LMI_OrderedIPAssignmentComponent")
+        self.assertEqual(len(slaves), 1)
+
+        # Save the slave SettingData
+        slaveSettingDataList = {}
+        slaveSettingDataList[self.networkConnections[0]] = slaves[0]
 
         # Delete the connection on cleanup
         # Deleting master connection will also delete the slaves
@@ -102,21 +111,31 @@ class TestBonding(TestBase):
             rc = self.wbemconnection.InvokeMethod("LMI_CreateSlaveSetting", cap.path, MasterSettingData=settingData.path)
             self.assertEqual(len(rc), 2)
             self.assertEqual(rc[0], 0)
+            self.assertEqual(rc[1]["SettingData"].classname, "LMI_BondingSlaveSettingData")
+            slaveSettingDataList[networkConnection] = rc[1]["SettingData"]
 
         # Check if the slave SettingDatas are associated to master
         assoc = self.wbemconnection.Associators(settingData.path, ResultClass="LMI_BondingSlaveSettingData")
         self.assertEqual(len(assoc), len(self.networkConnections))
 
+        # Test modification of slave setting data
+        slaveSettingData = assoc[0]
+        caption = "%s Modified" % slaveSettingData["Caption"]
+        slaveSettingData["Caption"] = caption
+        self.wbemconnection.ModifyInstance(slaveSettingData)
+        slaveSettingData = self.wbemconnection.GetInstance(slaveSettingData.path)
+
+        # Check if the properties are modified
+        self.assertEqual(slaveSettingData["Caption"], caption)
+
+        # Activate connection using SlaveSettingData
         for networkConnection in self.networkConnections:
             rc = self.wbemconnection.InvokeMethod("ApplySettingToIPNetworkConnection", self.confService.path,
-                    SettingData=settingData.path, IPNetworkConnection=networkConnection.path, Mode=pywbem.Uint16(32768))
+                    SettingData=slaveSettingDataList[networkConnection], IPNetworkConnection=networkConnection.path, Mode=pywbem.Uint16(32768))
             self.assertIn(rc[0], [0, 4096])
-            if rc[0] == 4096:
-                job = self.wait_for_job(rc[1]["Job"])
-                self.assertEqual(job["JobState"], 7) # Completed
-
-        # Give NM some time to active the connections
-        time.sleep(5)
+            if rc[0] == 4096: # Job started
+                # Wait for job completed indication
+                self.wait_for_job_completion(rc[1]["Job"])
 
         # Check presence of master port
         aggregators = self.wbemconnection.Associators(sd.path, ResultClass="LMI_LinkAggregator8023ad",

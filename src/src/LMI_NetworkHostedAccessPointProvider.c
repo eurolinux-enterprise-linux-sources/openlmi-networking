@@ -75,7 +75,7 @@ static CMPIStatus LMI_NetworkHostedAccessPointEnumInstances(
     LMI_NetworkHostedAccessPoint w;
     LMI_NetworkHostedAccessPoint_Init(&w, _cb, ns);
 
-    LMI_NetworkHostedAccessPoint_SetObjectPath_Antecedent(&w, lmi_get_computer_system());
+    LMI_NetworkHostedAccessPoint_SetObjectPath_Antecedent(&w, lmi_get_computer_system_safe(cc));
 
     network_lock(network);
     const Ports *ports = network_get_ports(network);
@@ -84,7 +84,7 @@ static CMPIStatus LMI_NetworkHostedAccessPointEnumInstances(
             break;
         }
         port = ports_index(ports, i);
-        networkOP = CIM_IPNetworkConnectionRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, ns);
+        networkOP = CIM_IPNetworkConnectionRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, cc, ns);
         LMI_NetworkHostedAccessPoint_SetObjectPath_Dependent(&w, networkOP);
 
         if (!ReturnInstance(cr, w)) {
@@ -95,9 +95,13 @@ static CMPIStatus LMI_NetworkHostedAccessPointEnumInstances(
 
         ipconfig = port_get_ipconfig(port);
         for (j = 0; j < addresses_length(ipconfig->addresses); ++j) {
-            asprintf(&name, "%s_%ld", port_get_id(port), j);
+            if (asprintf(&name, "%s_%zu", port_get_id(port), j) < 0) {
+                error("Memory allocation failed");
+                CMSetStatus(&res, CMPI_RC_ERR_FAILED);
+                break;
+            }
             LMI_NetworkHostedAccessPoint_SetObjectPath_Dependent(&w,
-                    CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, ns));
+                    CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, cc, ns));
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_NetworkHostedAccessPoint_ClassName);
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);

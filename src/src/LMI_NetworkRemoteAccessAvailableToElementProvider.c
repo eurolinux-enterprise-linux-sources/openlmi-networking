@@ -85,7 +85,7 @@ static CMPIStatus LMI_NetworkRemoteAccessAvailableToElementEnumInstances(
         port = ports_index(ports, i);
         ipconfig = port_get_ipconfig(port);
 
-        CMPIObjectPath *ipNetworkConnection = CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, ns);
+        CMPIObjectPath *ipNetworkConnection = CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, cc, ns);
 
         for (j = 0; j < addresses_length(ipconfig->addresses); ++j) {
             address = addresses_index(ipconfig->addresses, j);
@@ -93,10 +93,14 @@ static CMPIStatus LMI_NetworkRemoteAccessAvailableToElementEnumInstances(
             if (address->default_gateway == NULL) {
                 continue;
             }
-            asprintf(&name, "%s_gateway_%ld", port_get_id(port), j);
+            if (asprintf(&name, "%s_gateway_%zu", port_get_id(port), j) < 0) {
+                error("Memory allocation failed");
+                CMSetStatus(&res, CMPI_RC_ERR_FAILED);
+                break;
+            }
 
             LMI_NetworkRemoteAccessAvailableToElement_SetObjectPath_Antecedent(&w,
-                    CIM_ServiceAccessPointRefOP(name, LMI_NetworkRemoteServiceAccessPoint_ClassName, _cb, ns));
+                    CIM_ServiceAccessPointRefOP(name, LMI_NetworkRemoteServiceAccessPoint_ClassName, _cb, cc, ns));
             LMI_NetworkRemoteAccessAvailableToElement_SetObjectPath_Dependent(&w, ipNetworkConnection);
 
             if (!ReturnInstance(cr, w)) {
@@ -105,7 +109,7 @@ static CMPIStatus LMI_NetworkRemoteAccessAvailableToElementEnumInstances(
                 break;
             }
 
-            LMI_NetworkRemoteAccessAvailableToElement_SetObjectPath_Dependent(&w, lmi_get_computer_system());
+            LMI_NetworkRemoteAccessAvailableToElement_SetObjectPath_Dependent(&w, lmi_get_computer_system_safe(cc));
 
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_NetworkRemoteAccessAvailableToElement_ClassName);
@@ -117,12 +121,16 @@ static CMPIStatus LMI_NetworkRemoteAccessAvailableToElementEnumInstances(
         }
 
         if (dns_servers_length(ipconfig->dns_servers) > 0) {
-            CMPIObjectPath *dnsProtocolEndpoint = CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_DNSProtocolEndpoint_ClassName, _cb, ns);
+            CMPIObjectPath *dnsProtocolEndpoint = CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_DNSProtocolEndpoint_ClassName, _cb, cc, ns);
             for (j = 0; j < dns_servers_length(ipconfig->dns_servers); ++j) {
-                asprintf(&name, "%s_dns_%ld", port_get_id(port), j);
+                if (asprintf(&name, "%s_dns_%zu", port_get_id(port), j) < 0) {
+                    error("Memory allocation failed");
+                    CMSetStatus(&res, CMPI_RC_ERR_FAILED);
+                    break;
+                }
 
                 LMI_NetworkRemoteAccessAvailableToElement_SetObjectPath_Antecedent(&w,
-                        CIM_ServiceAccessPointRefOP(name, LMI_NetworkRemoteServiceAccessPoint_ClassName, _cb, ns));
+                        CIM_ServiceAccessPointRefOP(name, LMI_NetworkRemoteServiceAccessPoint_ClassName, _cb, cc, ns));
                 LMI_NetworkRemoteAccessAvailableToElement_SetObjectPath_Dependent(&w, dnsProtocolEndpoint);
 
                 if (!ReturnInstance(cr, w)) {
@@ -131,7 +139,7 @@ static CMPIStatus LMI_NetworkRemoteAccessAvailableToElementEnumInstances(
                     break;
                 }
 
-                LMI_NetworkRemoteAccessAvailableToElement_SetObjectPath_Dependent(&w, lmi_get_computer_system());
+                LMI_NetworkRemoteAccessAvailableToElement_SetObjectPath_Dependent(&w, lmi_get_computer_system_safe(cc));
 
                 if (!ReturnInstance(cr, w)) {
                     error("Unable to return instance of class " LMI_NetworkRemoteAccessAvailableToElement_ClassName);

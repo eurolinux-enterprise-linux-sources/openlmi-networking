@@ -72,8 +72,8 @@ static CMPIStatus LMI_NetworkDeviceSAPImplementationEnumInstances(
     Port *port;
     for (size_t i = 0; i < ports_length(ports); ++i) {
         port = ports_index(ports, i);
-        CMPIObjectPath *networkPortOP = CIM_NetworkPortRefOP(port_get_id(port), LMI_EthernetPort_ClassName, _cb, ns);
-        CMPIObjectPath *serviceAccessPointOP = CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_LANEndpoint_ClassName, _cb, ns);
+        CMPIObjectPath *networkPortOP = CIM_NetworkPortRefOP(port_get_id(port), LMI_EthernetPort_ClassName, _cb, cc, ns);
+        CMPIObjectPath *serviceAccessPointOP = CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_LANEndpoint_ClassName, _cb, cc, ns);
 
         LMI_NetworkDeviceSAPImplementation w;
         LMI_NetworkDeviceSAPImplementation_Init(&w, _cb, ns);

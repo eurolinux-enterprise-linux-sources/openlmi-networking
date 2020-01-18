@@ -24,7 +24,8 @@
 #include "globals.h"
 
 typedef enum {
-    JOB_TYPE_APPLY_SETTING_DATA
+    JOB_TYPE_APPLY_SETTING_DATA,
+    JOB_TYPE_UNAPPLY_SETTING_DATA
 } JobType;
 
 typedef enum {
@@ -71,9 +72,9 @@ typedef struct Jobs Jobs;
 Job *job_new(JobType type);
 void job_free(Job *job);
 
-void job_add_error(Job *job, const char *error);
+LMIResult job_add_error(Job *job, const char *error);
 
-void job_add_affected_element(Job *job, JobAffectedElementType type, const char *id);
+LMIResult job_add_affected_element(Job *job, JobAffectedElementType type, const char *id);
 
 void job_set_state(Job *job, JobState state);
 
@@ -84,6 +85,7 @@ LIST_DECL(JobError, job_error)
 LIST_DECL(JobAffectedElement, job_affected_element)
 
 JobAffectedElement *job_affected_element_new(JobAffectedElementType type, const char *id);
+void job_affected_element_free(JobAffectedElement *element);
 JobAffectedElement *job_affected_elements_find_by_type(const JobAffectedElements *affected, JobAffectedElementType type);
 
 #endif

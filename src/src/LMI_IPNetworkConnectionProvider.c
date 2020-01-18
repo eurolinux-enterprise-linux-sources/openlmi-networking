@@ -63,7 +63,7 @@ static CMPIStatus LMI_IPNetworkConnectionEnumInstances(
     Network *network = mi->hdl;
     const char *ns = KNameSpace(cop);
     return IPNetworkConnectionEnumInstances(LMI_IPNetworkConnection_Type,
-                                           network, cr, _cb, ns);
+                                           network, cr, _cb, cc, ns);
 }
 
 static CMPIStatus LMI_IPNetworkConnectionGetInstance(

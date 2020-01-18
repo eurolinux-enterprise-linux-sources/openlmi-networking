@@ -79,7 +79,7 @@ CMPIStatus connection_to_IPAssignmentSettingData(
                     LMI_IPAssignmentSettingData_Set_IPv6Type(w,
                             LMI_IPAssignmentSettingData_IPv6Type_Stateless);
                     break;
-                case SETTING_METHOD_DHCP:
+                case SETTING_METHOD_DHCPv6:
                     LMI_IPAssignmentSettingData_Set_IPv6Type(w,
                             LMI_IPAssignmentSettingData_IPv6Type_DHCPv6);
                     break;
@@ -423,7 +423,7 @@ CMPIStatus route_to_IPRouteSettingData(
 {
     CMPIStatus res = { CMPI_RC_OK, NULL };
     char *name, *id;
-    if (asprintf(&name, "%s_%ld", setting_id, route_nr) < 0) {
+    if (asprintf(&name, "%s_%zu", setting_id, route_nr) < 0) {
         error("Memory allocation failed");
         CMSetStatus(&res, CMPI_RC_ERR_FAILED);
         return res;
@@ -565,7 +565,8 @@ CMPIStatus IPAssignmentSettingDataEnumInstances(
                 }
             }
         } else if (type == LMI_IPAssignmentSettingData_Type &&
-                connection_get_type(connection) == CONNECTION_TYPE_ETHERNET) {
+            connection_get_type(connection) != CONNECTION_TYPE_BRIDGE &&
+            connection_get_type(connection) != CONNECTION_TYPE_BOND) {
 
             // Cumulative IPAssignmentSettingData
             LMI_IPAssignmentSettingData w;

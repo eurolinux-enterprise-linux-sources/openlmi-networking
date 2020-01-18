@@ -52,10 +52,9 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR} ${CMPI_INCLUDE_DIR}
 target_link_libraries(${LIBRARY_NAME} ${KONKRETCMPI_LIBRARIES} ${DBUSGLIB_LIBRARIES}
     ${GLIB_LIBRARIES} ${UUID_LIBRARIES} pthread ${OPENLMI_LIBRARIES})
 
-# Create registration file
-cim_registration(${PROVIDER_NAME} ${LIBRARY_NAME} ${MOF} share/openlmi-networking)
-
 # Profile Registration
+set(TARGET_MOF "${CMAKE_BINARY_DIR}/mof/90_LMI_Networking_Profile.mof")
+configure_file("${CMAKE_SOURCE_DIR}/mof/90_LMI_Networking_Profile.mof" ${TARGET_MOF} COPYONLY)
 
 macro(register SKELETON CLASSES OUT_FILE)
     file(READ ${SKELETON} INSTANCE_SKEL)
@@ -96,13 +95,13 @@ set(DSP1036
     "LMI_IPConfigurationServiceAffectsElement;"
     "LMI_ExtendedStaticIPAssignmentSettingData")
 
-set(TARGET_MOF "${CMAKE_BINARY_DIR}/mof/90_LMI_Networking_Profile.mof")
-file(COPY "${CMAKE_SOURCE_DIR}/mof/90_LMI_Networking_Profile.mof" DESTINATION "${CMAKE_BINARY_DIR}/mof/")
-
 register("DSP1116.mof.skel" "${DSP1116}" ${TARGET_MOF})
 register("DSP1035.mof.skel" "${DSP1035}" ${TARGET_MOF})
 register("DSP1036.mof.skel" "${DSP1036}" ${TARGET_MOF})
 register("OpenLMI-Networking.mof.skel" "${CIM_CLASSES}" ${TARGET_MOF})
+
+# Create registration file
+cim_registration(${PROVIDER_NAME} ${LIBRARY_NAME} ${MOF} share/openlmi-networking "${TARGET_MOF}")
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib${LIB_SUFFIX}/cmpi/)
 install(PROGRAMS ${CIMPROVAGT_SCRIPT} DESTINATION libexec/pegasus)

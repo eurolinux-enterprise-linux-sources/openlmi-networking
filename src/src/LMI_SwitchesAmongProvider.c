@@ -52,13 +52,13 @@ static CMPIStatus LMI_SwitchesAmongEnumInstances(
     LMI_SwitchServiceRef_Init(&dependent, _cb, ns);
     LMI_SwitchServiceRef_Set_CreationClassName(&dependent, LMI_SwitchService_ClassName);
     LMI_SwitchServiceRef_Set_SystemCreationClassName(&dependent, get_system_creation_class_name());
-    LMI_SwitchServiceRef_Set_SystemName(&dependent, get_system_name());
+    LMI_SwitchServiceRef_Set_SystemName(&dependent, lmi_get_system_name_safe(cc));
 
     LMI_SwitchPortRef antecedent;
     LMI_SwitchPortRef_Init(&antecedent, _cb, ns);
     LMI_SwitchPortRef_Set_CreationClassName(&antecedent, LMI_SwitchPort_ClassName);
     LMI_SwitchPortRef_Set_SystemCreationClassName(&antecedent, get_system_creation_class_name());
-    LMI_SwitchPortRef_Set_SystemName(&antecedent, get_system_name());
+    LMI_SwitchPortRef_Set_SystemName(&antecedent, lmi_get_system_name_safe(cc));
 
     Port *port, *slave;
     network_lock(network);

@@ -71,11 +71,11 @@ static CMPIStatus LMI_NetworkSystemDeviceEnumInstances(
     network_lock(network);
     const Ports *ports = network_get_ports(network);
     for (size_t i = 0; i < ports_length(ports); ++i) {
-        CMPIObjectPath *logicalDeviceOP = CIM_LogicalDeviceRefOP(port_get_id(ports_index(ports, i)), LMI_EthernetPort_ClassName, _cb, ns);
+        CMPIObjectPath *logicalDeviceOP = CIM_LogicalDeviceRefOP(port_get_id(ports_index(ports, i)), LMI_EthernetPort_ClassName, _cb, cc, ns);
 
         LMI_NetworkSystemDevice w;
         LMI_NetworkSystemDevice_Init(&w, _cb, ns);
-        LMI_NetworkSystemDevice_SetObjectPath_GroupComponent(&w, lmi_get_computer_system());
+        LMI_NetworkSystemDevice_SetObjectPath_GroupComponent(&w, lmi_get_computer_system_safe(cc));
         LMI_NetworkSystemDevice_SetObjectPath_PartComponent(&w, logicalDeviceOP);
 
         if (!ReturnInstance(cr, w)) {

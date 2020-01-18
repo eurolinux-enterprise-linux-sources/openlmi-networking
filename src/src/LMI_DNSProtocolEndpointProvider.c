@@ -78,7 +78,7 @@ static CMPIStatus LMI_DNSProtocolEndpointEnumInstances(
         if (dns_servers_length(ipconfig->dns_servers) > 0) {
             LMI_DNSProtocolEndpoint w;
             LMI_DNSProtocolEndpoint_Init(&w, _cb, ns);
-            LMI_DNSProtocolEndpoint_Set_SystemName(&w, get_system_name());
+            LMI_DNSProtocolEndpoint_Set_SystemName(&w, lmi_get_system_name_safe(cc));
             LMI_DNSProtocolEndpoint_Set_SystemCreationClassName(&w, get_system_creation_class_name());
             LMI_DNSProtocolEndpoint_Set_CreationClassName(&w, LMI_DNSProtocolEndpoint_ClassName);
             LMI_DNSProtocolEndpoint_Set_Name(&w, port_get_id(port));

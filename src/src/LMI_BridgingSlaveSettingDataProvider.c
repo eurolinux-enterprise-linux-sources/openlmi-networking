@@ -105,6 +105,9 @@ static CMPIStatus LMI_BridgingSlaveSettingDataModifyInstance(
     if (w.Caption.exists && !w.Caption.null) {
         connection_set_name(connection, w.Caption.chars);
     }
+
+    connection_set_master_connection(connection, connection_get_master_connection(old_connection), SETTING_TYPE_BRIDGE);
+
     Setting *setting = settings_find_by_type(connection_get_settings(connection), SETTING_TYPE_BRIDGE_SLAVE);
     if (setting == NULL) {
         setting = setting_new(SETTING_TYPE_BRIDGE_SLAVE);

@@ -1,8 +1,8 @@
 %global logfile %{_localstatedir}/log/openlmi-install.log
 
 Name:           openlmi-networking
-Version:        0.2.1
-Release:        1%{?dist}
+Version:        0.3.0
+Release:        3%{?dist}
 Summary:        CIM providers for network management
 
 License:        LGPLv2+
@@ -14,7 +14,7 @@ Provides:       cura-networking%{?_isa} = %{version}-%{release}
 Obsoletes:      cura-networking < 0.0.5-1
 
 BuildRequires:  cmake
-BuildRequires:  openlmi-providers-devel >= 0.4.1
+BuildRequires:  openlmi-providers-devel >= 0.5.0
 BuildRequires:  konkretcmpi-devel >= 0.9.1
 BuildRequires:  sblim-cmpi-devel
 BuildRequires:  cim-schema
@@ -25,12 +25,19 @@ BuildRequires:  libuuid-devel
 BuildRequires:  python-sphinx
 BuildRequires:  python-sphinx-theme-openlmi
 
+
 # For openlmi-register-pegasus script
 Requires:       python2
 # sblim-sfcb or tog-pegasus
 Requires:       cim-server
 # Require openlmi-providers because of registration scripts
-Requires:       openlmi-providers >= 0.4.1
+Requires:       openlmi-providers >= 0.5.0
+
+# Upstream patches:
+# Fix bond deactivation
+Patch0:         openlmi-networking-0.3.0-fix-bond-deactivation.patch
+# Fix creation of network bridges
+Patch1:         openlmi-networking-0.3.0-fix-creation-of-network-bridges.patch
 
 %description
 %{name} is set of CMPI providers for network management using
@@ -48,6 +55,8 @@ BuildArch:      noarch
 
 %prep
 %setup -q
+%patch0 -p1
+%patch1 -p1
 
 
 %build
@@ -126,6 +135,65 @@ fi >> %logfile 2>&1
 
 
 %changelog
+* Wed Nov 19 2014 Radek Novacek <rnovacek@redhat.com> 0.3.0-3
+- Fix creation of network bridges
+- Resolves: rhbz#1163793
+
+* Mon Oct 06 2014 Radek Novacek <rnovacek@redhat.com> 0.3.0-2
+- Fix bonding deactivation
+- Resolves: rhbz#1148849
+
+* Thu Sep 04 2014 Radek Novacek <rnovacek@redhat.com> 0.3.0-1
+- Rebase to openlmi-networking 0.3.0
+- Resolves: rhbz#1122430
+
+* Tue Mar 11 2014 Stephen Gallagher <sgallagh@redhat.com> - 0.2.2-7
+- Related: rhbz#1065298 - Revert unrelated patches
+
+* Mon Mar 10 2014 Stephen Gallagher <sgallagh@redhat.com> 0.2.2-6
+- Resolves: rhbz#1065298 - lmishell freezes while creating bond
+
+* Thu Feb 27 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-5
+- Fix "React to IP configuration change" patch
+- Resolves: rhbz#1069169
+
+* Tue Feb 25 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-4
+- Fix IPv6Type property of LMI_IPAssignmentSettingData class for DHCPv6
+- React to IP configuration change
+- Resolves: #1066853, #1069169
+
+* Wed Feb 12 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-3
+- Fix LMI_IPElementSettingData refering bridging master setting instead of slave setting
+- Support connections that has interface-name option specified
+- Fix that bond slave names are not going above 2
+- allow virtual device name change for bonds
+- Resolves: #1064215, #1064324, #1064280, #1064334
+
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 0.2.2-2
+- Mass rebuild 2014-01-24
+
+* Wed Jan 08 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-1
+- Version 0.2.2
+- Resolves: rhbz#1049451
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 0.2.1-5
+- Mass rebuild 2013-12-27
+
+* Tue Dec 10 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-4
+- Fix that association LMI_IPElementSettingData refers wrong classes
+- Resolves: rhbz#1038498
+
+* Mon Dec 02 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-3
+- Use proper classname of slave SettingData in CreateSlaveSetting
+- bridging: Don't forget master setting when modifying slave setting
+- fix the tests
+- Fix potential crash when setting master connection that not exists
+- Resolves: rhbz#1035674, rhbz#1035676
+
+* Wed Nov 27 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-2
+- Allow to use SlaveSettingData for activation of slave settings
+- Resolves: rhbz#1028475
+
 * Mon Nov 04 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-1
 - Version 0.2.1
 - Require openlmi-providers-0.4.1

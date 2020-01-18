@@ -73,9 +73,9 @@ static CMPIStatus LMI_EndpointForIPNetworkConnectionEnumInstances(
         LMI_EndpointForIPNetworkConnection w;
         LMI_EndpointForIPNetworkConnection_Init(&w, _cb, ns);
         LMI_EndpointForIPNetworkConnection_SetObjectPath_Antecedent(&w,
-                LMI_LANEndpointRefOP(port_get_id(port), LMI_LANEndpoint_ClassName, _cb, ns));
+                LMI_LANEndpointRefOP(port_get_id(port), LMI_LANEndpoint_ClassName, _cb, cc, ns));
         LMI_EndpointForIPNetworkConnection_SetObjectPath_Dependent(&w,
-                LMI_IPNetworkConnectionRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, ns));
+                LMI_IPNetworkConnectionRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, cc, ns));
 
         if (!ReturnInstance(cr, w)) {
             error("Unable to return instance of class " LMI_EndpointForIPNetworkConnection_ClassName);

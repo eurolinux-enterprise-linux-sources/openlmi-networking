@@ -25,6 +25,8 @@
 #include "LMI_IPAssignmentSettingData.h"
 #include "LMI_BondingMasterSettingData.h"
 #include "LMI_BridgingMasterSettingData.h"
+#include "LMI_BondingSlaveSettingData.h"
+#include "LMI_BridgingSlaveSettingData.h"
 #include "LMI_IPNetworkConnection.h"
 #include "LMI_NetworkJob.h"
 #include "network.h"
@@ -38,6 +40,9 @@ static const CMPIBroker* _cb = NULL;
 
 CMPIObjectPath *NetworkJob_ObjectPath(Job *job, const char *ns)
 {
+    if (job == NULL) {
+        return NULL;
+    }
     LMI_NetworkJobRef networkjob;
     LMI_NetworkJobRef_Init(&networkjob, _cb, ns);
 
@@ -86,7 +91,7 @@ static CMPIStatus LMI_IPConfigurationServiceEnumInstances(
 
     LMI_IPConfigurationService w;
     LMI_IPConfigurationService_Init(&w, _cb, ns);
-    LMI_IPConfigurationService_Set_SystemName(&w, get_system_name());
+    LMI_IPConfigurationService_Set_SystemName(&w, lmi_get_system_name_safe(cc));
     LMI_IPConfigurationService_Set_SystemCreationClassName(&w, get_system_creation_class_name());
     LMI_IPConfigurationService_Set_CreationClassName(&w, LMI_IPConfigurationService_ClassName);
     LMI_IPConfigurationService_Set_Name(&w, LMI_IPConfigurationService_ClassName);
@@ -300,7 +305,6 @@ KUint32 LMI_IPConfigurationService_ApplySettingToIPNetworkConnection(
     LMIResult res_current = LMI_SUCCESS, res_next = LMI_SUCCESS;
 
     Require(SettingData, "No SettingData has been specified", result, 2);
-    Require(IPNetworkConnection, "No IPNetworkConnection has been specified", result, 2);
 
     if (!Mode->exists || Mode->null) {
         warn("No Mode has been specified, assuming 1");
@@ -312,30 +316,43 @@ KUint32 LMI_IPConfigurationService_ApplySettingToIPNetworkConnection(
         }
     }
 
-    CIM_IPNetworkConnectionRef ipNetworkConnectionRef;
-    CIM_IPNetworkConnectionRef_InitFromObjectPath(&ipNetworkConnectionRef, _cb, IPNetworkConnection->value);
-    if (strcmp(ipNetworkConnectionRef.SystemName.chars, get_system_name()) != 0) {
-        KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "IPNetworkConnection doesn't exists");
-        return result;
-    }
-    network_lock(network);
-    const Ports *ports = network_get_ports(network);
     Port *port = NULL;
-    for (i = 0; i < ports_length(ports); ++i) {
-        if (strcmp(port_get_id(ports_index(ports, i)), ipNetworkConnectionRef.Name.chars) == 0) {
-            port = ports_index(ports, i);
-            break;
+    network_lock(network);
+    if (IPNetworkConnection->exists && !IPNetworkConnection->null) {
+        CIM_IPNetworkConnectionRef ipNetworkConnectionRef;
+        CIM_IPNetworkConnectionRef_InitFromObjectPath(&ipNetworkConnectionRef, _cb, IPNetworkConnection->value);
+        if (strcmp(ipNetworkConnectionRef.SystemName.chars, lmi_get_system_name_safe(context)) != 0) {
+            KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "IPNetworkConnection doesn't exists");
+            network_unlock(network);
+            return result;
+        }
+        const Ports *ports = network_get_ports(network);
+        for (i = 0; i < ports_length(ports); ++i) {
+            if (strcmp(port_get_id(ports_index(ports, i)), ipNetworkConnectionRef.Name.chars) == 0) {
+                port = ports_index(ports, i);
+                break;
+            }
+        }
+        if (port == NULL) {
+            KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "IPNetworkConnection doesn't exists");
+            network_unlock(network);
+            return result;
         }
     }
 
     LMI_IPAssignmentSettingDataRef settingDataRef;
     LMI_IPAssignmentSettingDataRef_InitFromObjectPath(&settingDataRef, _cb, SettingData->value);
-    char *id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_IPAssignmentSettingData_ClassName);
-    if (id == NULL) {
+    char *id = NULL;
+    if (strstr(settingDataRef.InstanceID.chars, LMI_IPAssignmentSettingData_ClassName) != NULL) {
+        id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_IPAssignmentSettingData_ClassName);
+    } else if (strstr(settingDataRef.InstanceID.chars, LMI_BridgingMasterSettingData_ClassName) != NULL) {
         id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_BridgingMasterSettingData_ClassName);
-    }
-    if (id == NULL) {
+    } else if (strstr(settingDataRef.InstanceID.chars, LMI_BondingMasterSettingData_ClassName) != NULL) {
         id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_BondingMasterSettingData_ClassName);
+    } else if (strstr(settingDataRef.InstanceID.chars, LMI_BridgingSlaveSettingData_ClassName) != NULL) {
+        id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_BridgingSlaveSettingData_ClassName);
+    } else if (strstr(settingDataRef.InstanceID.chars, LMI_BondingSlaveSettingData_ClassName) != NULL) {
+        id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_BondingSlaveSettingData_ClassName);
     }
     if (id == NULL) {
         KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "Invalid InstanceID of " LMI_IPAssignmentSettingData_ClassName " instance");
@@ -352,12 +369,6 @@ KUint32 LMI_IPConfigurationService_ApplySettingToIPNetworkConnection(
     }
     free(id);
 
-    if (port == NULL) {
-        KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "IPNetworkConnection doesn't exists");
-        network_unlock(network);
-        return result;
-    }
-
     if (connection == NULL) {
         KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "SettingData doesn't exists");
         network_unlock(network);
@@ -370,11 +381,26 @@ KUint32 LMI_IPConfigurationService_ApplySettingToIPNetworkConnection(
         res_current = network_activate_connection(network, port, connection, &job);
     } else if (iscurrent == NO) {
         const ActiveConnections *activeConnections = network_get_active_connections(network);
-        // connection should be unmade current
-        if (active_connections_is_connection_active_on_port(activeConnections, connection, port)) {
-            res_current = port_disconnect(port);
+        ActiveConnection *activeConnection;
+        Connection *master;
+        const Ports *ports;
+        for (i = 0; i < active_connections_length(activeConnections); i++) {
+            activeConnection = active_connections_index(activeConnections, i);
+            ports = active_connection_get_ports(activeConnection);
+            if (connection_compare(active_connection_get_connection(activeConnection), connection) &&
+                (port == NULL || ports_find_by_uuid(ports, port_get_uuid(port)) != NULL)) {
+
+                res_current = network_deactivate_connection(network, activeConnection, &job);
+                continue;
+            }
+            if (port == NULL) {
+                master = connection_get_master_connection(active_connection_get_connection(activeConnection));
+                if (master != NULL && connection_compare(master, connection)) {
+                    // When deactivating master without port specified, deactivate also its slaves
+                    network_deactivate_connection(network, activeConnection, &job);
+                }
+            }
         }
-        KUint32_Set(&result, res_current);
     }
 
     if (res_current != LMI_SUCCESS && res_current != LMI_JOB_STARTED) {
@@ -462,7 +488,7 @@ KUint32 LMI_IPConfigurationService_ApplySettingToLANEndpoint(
 
     CIM_LANEndpointRef lanEndpointRef;
     CIM_LANEndpointRef_InitFromObjectPath(&lanEndpointRef, _cb, EndpointRef->value);
-    if (strcmp(lanEndpointRef.SystemName.chars, get_system_name()) != 0) {
+    if (strcmp(lanEndpointRef.SystemName.chars, lmi_get_system_name_safe(context)) != 0) {
         KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "Endpoint doesn't exists");
         return result;
     }
@@ -544,7 +570,7 @@ KUint32 LMI_IPConfigurationService_ApplySettingToIPProtocolEndpoint(
 
     LMI_IPProtocolEndpointRef protocolEndpointRef;
     LMI_IPProtocolEndpointRef_InitFromObjectPath(&protocolEndpointRef, _cb, EndpointRef->value);
-    if (strcmp(protocolEndpointRef.SystemName.chars, get_system_name()) != 0) {
+    if (strcmp(protocolEndpointRef.SystemName.chars, lmi_get_system_name_safe(context)) != 0) {
         KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "Endpoint doesn't exists");
         return result;
     }

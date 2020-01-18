@@ -83,7 +83,7 @@ static CMPIStatus LMI_BindsToLANEndpointEnumInstances(
         port = ports_index(ports, i);
         ipconfig = port_get_ipconfig(port);
 
-        CMPIObjectPath *lanEndpointOP = CIM_LANEndpointRefOP(port_get_id(port), LMI_LANEndpoint_ClassName, _cb, ns);
+        CMPIObjectPath *lanEndpointOP = CIM_LANEndpointRefOP(port_get_id(port), LMI_LANEndpoint_ClassName, _cb, cc, ns);
         if (lanEndpointOP == NULL) {
             error("Unable to get reference to " LMI_LANEndpoint_ClassName);
             CMSetStatus(&res, CMPI_RC_ERR_FAILED);
@@ -91,12 +91,12 @@ static CMPIStatus LMI_BindsToLANEndpointEnumInstances(
         }
 
         for (j = 0; j < addresses_length(ipconfig->addresses); ++j) {
-            if (asprintf(&name, "%s_%ld", port_get_id(port), j) < 0) {
+            if (asprintf(&name, "%s_%zu", port_get_id(port), j) < 0) {
                 error("Memory allocation failed");
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);
                 break;
             }
-            CMPIObjectPath *serviceAccessPointOP = CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, ns);
+            CMPIObjectPath *serviceAccessPointOP = CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, cc, ns);
             if (serviceAccessPointOP == NULL) {
                 error("Unable to get reference to " LMI_IPProtocolEndpoint_ClassName);
                 free(name);

@@ -40,6 +40,9 @@ typedef struct NetworkPriv {
 void *network_priv_new(Network *network)
 {
     NetworkPriv *priv = malloc(sizeof(NetworkPriv));
+    if (priv == NULL) {
+        return priv;
+    }
     priv->activeConnections = active_connections_new(0);
     return priv;
 }
@@ -65,6 +68,11 @@ LMIResult network_priv_activate_connection(Network *network, const Port *port, c
     return LMI_SUCCESS;
 }
 
+LMIResult network_priv_deactivate_connection(Network *network, const ActiveConnection *activeConnection, Job **job)
+{
+    return LMI_SUCCESS;
+}
+
 LMIResult network_priv_get_active_connections(Network *network)
 {
     warn("network_priv_get_active_connections not implemented");
@@ -83,7 +91,7 @@ LMIResult network_priv_delete_connection(Network *network, Connection *connectio
     return LMI_SUCCESS;
 }
 
-void activeconnection_priv_free(void *priv)
+void active_connection_priv_free(void *priv)
 {
 }
 

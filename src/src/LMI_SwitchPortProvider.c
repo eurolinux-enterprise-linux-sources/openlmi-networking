@@ -88,7 +88,7 @@ static CMPIStatus LMI_SwitchPortEnumInstances(
             LMI_SwitchPort_Set_CreationClassName(&w, LMI_SwitchPort_ClassName);
             LMI_SwitchPort_Set_Name(&w, port_get_id(slave));
             LMI_SwitchPort_Set_SystemCreationClassName(&w, get_system_creation_class_name());
-            LMI_SwitchPort_Set_SystemName(&w, get_system_name());
+            LMI_SwitchPort_Set_SystemName(&w, lmi_get_system_name_safe(cc));
 
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_SwitchPort_ClassName);

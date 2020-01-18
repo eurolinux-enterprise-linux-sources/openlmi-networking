@@ -76,7 +76,7 @@ static CMPIStatus LMI_IPNetworkConnectionElementCapabilitiesEnumInstances(
         LMI_IPNetworkConnectionRef_Set_CreationClassName(&managedElement, LMI_IPNetworkConnection_ClassName);
         LMI_IPNetworkConnectionRef_Set_Name(&managedElement, port_get_id(port));
         LMI_IPNetworkConnectionRef_Set_SystemCreationClassName(&managedElement, get_system_creation_class_name());
-        LMI_IPNetworkConnectionRef_Set_SystemName(&managedElement, get_system_name());
+        LMI_IPNetworkConnectionRef_Set_SystemName(&managedElement, lmi_get_system_name_safe(cc));
 
         LMI_IPNetworkConnectionCapabilitiesRef capabilities;
         LMI_IPNetworkConnectionCapabilitiesRef_Init(&capabilities, _cb, ns);

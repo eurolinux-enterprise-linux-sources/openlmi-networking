@@ -26,6 +26,11 @@
 #include <glib.h>
 #include <glib-object.h>
 
+#ifndef G_VALUE_INIT
+// This is not defined in old GLib2 (< 2.30)
+#define G_VALUE_INIT { 0, { { 0 } } }
+#endif
+
 #define IPv4_ADDR G_TYPE_UINT
 #define IPv6_ADDR DBUS_TYPE_G_UCHAR_ARRAY
 

@@ -72,6 +72,10 @@ typedef struct ConnectionPriv {
 LMIResult connection_get_properties(Connection *connection);
 void connection_updated_cb(void *proxy, Connection *connection);
 void connection_removed_cb(void *proxy, Connection *connection);
+void connection_updated_wrapper_cb(void *proxy, GHashTable *settings, Connection *connection)
+{
+    connection_updated_cb(proxy, connection);
+}
 
 Connection *connection_new_from_objectpath(Network *network, const char *objectpath, LMIResult *res)
 {
@@ -104,8 +108,13 @@ Connection *connection_new_from_objectpath(Network *network, const char *objectp
         return NULL;
     }
 
+#ifdef NM_VERSION_08
+    dbus_g_proxy_add_signal(priv->proxy, "Updated", DBUS_TYPE_G_MAP_OF_MAP_OF_VARIANT, G_TYPE_INVALID);
+    dbus_g_proxy_connect_signal(priv->proxy, "Updated", G_CALLBACK(connection_updated_wrapper_cb), connection, NULL);
+#else
     dbus_g_proxy_add_signal(priv->proxy, "Updated", G_TYPE_INVALID);
     dbus_g_proxy_connect_signal(priv->proxy, "Updated", G_CALLBACK(connection_updated_cb), connection, NULL);
+#endif
 
     dbus_g_proxy_add_signal(priv->proxy, "Removed", G_TYPE_INVALID);
     dbus_g_proxy_connect_signal(priv->proxy, "Removed", G_CALLBACK(connection_removed_cb), connection, NULL);
@@ -201,6 +210,15 @@ LMIResult connection_read_properties(Connection *connection, GHashTable *hash)
                     }
                 }
             }
+            v = g_hash_table_lookup(connection_map, "interface-name");
+            if (v) {
+                s = g_value_get_string(v);
+                if (s != NULL) {
+                    const Ports *ports = network_get_ports(connection->network);
+                    Port *port = ports_find_by_id(ports, s);
+                    connection->port = port;
+                }
+            }
         } else if (strcmp(key, "802-3-ethernet") == 0) {
             v = g_hash_table_lookup((GHashTable *) value, "mac-address");
             if (v != NULL) {
@@ -225,12 +243,12 @@ LMIResult connection_read_properties(Connection *connection, GHashTable *hash)
     // Add ids and captions to the settings
     for (size_t i = 0; i < settings_length(connection->settings); ++i) {
         setting = settings_index(connection->settings, i);
-        if (asprintf(&id, "%s_%ld", connection->id, i) < 0) {
+        if (asprintf(&id, "%s_%zu", connection->id, i) < 0) {
             res = LMI_ERROR_MEMORY;
             goto err;
         }
         setting->id = id;
-        if (asprintf(&caption, "%s %ld", connection->name, i) < 0) {
+        if (asprintf(&caption, "%s %zu", connection->name, i) < 0) {
             res = LMI_ERROR_MEMORY;
             goto err;
         }

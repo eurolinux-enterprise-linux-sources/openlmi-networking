@@ -18,6 +18,7 @@
  * Authors: Radek Novacek <rnovacek@redhat.com>
  */
 
+#include "ref_factory.h"
 #include "globals.h"
 #include "setting.h"
 
@@ -38,35 +39,35 @@
 #include "LMI_LinkAggregator8023ad.h"
 
 #define CIMReferenceOPImpl_Name(classname) \
-CMPIObjectPath *classname##RefOP(const char *name, const char *creationClassName, const CMPIBroker *cb, const char *ns) \
+CMPIObjectPath *classname##RefOP(const char *name, const char *creationClassName, const CMPIBroker *cb, const CMPIContext *cc, const char *ns) \
 { \
     classname##Ref ref; \
     classname##Ref_Init(&ref, cb, ns); \
     classname##Ref_Set_CreationClassName(&ref, creationClassName); \
     classname##Ref_Set_Name(&ref, name); \
     classname##Ref_Set_SystemCreationClassName(&ref, get_system_creation_class_name()); \
-    classname##Ref_Set_SystemName(&ref, get_system_name()); \
+    classname##Ref_Set_SystemName(&ref, lmi_get_system_name_safe(cc)); \
     CMPIObjectPath *op = classname##Ref_ToObjectPath(&ref, NULL); \
     op->ft->setClassName(op, creationClassName); \
     return op; \
 }
 
 #define CIMReferenceOPImpl_DeviceID(classname) \
-CMPIObjectPath *classname##RefOP(const char *name, const char *creationClassName, const CMPIBroker *cb, const char *ns) \
+CMPIObjectPath *classname##RefOP(const char *name, const char *creationClassName, const CMPIBroker *cb, const CMPIContext *cc, const char *ns) \
 { \
     classname##Ref ref; \
     classname##Ref_Init(&ref, cb, ns); \
     classname##Ref_Set_CreationClassName(&ref, creationClassName); \
     classname##Ref_Set_DeviceID(&ref, name); \
     classname##Ref_Set_SystemCreationClassName(&ref, get_system_creation_class_name()); \
-    classname##Ref_Set_SystemName(&ref, get_system_name()); \
+    classname##Ref_Set_SystemName(&ref, lmi_get_system_name_safe(cc)); \
     CMPIObjectPath *op = classname##Ref_ToObjectPath(&ref, NULL); \
     op->ft->setClassName(op, creationClassName); \
     return op; \
 }
 
 #define CIMReferenceOPImpl_InstanceID(classname) \
-CMPIObjectPath *classname##RefOP(const char *name, const char *creationClassName, const CMPIBroker *cb, const char *ns) \
+CMPIObjectPath *classname##RefOP(const char *name, const char *creationClassName, const CMPIBroker *cb, const CMPIContext *cc, const char *ns) \
 { \
     classname##Ref ref; \
     classname##Ref_Init(&ref, cb, ns); \
@@ -90,20 +91,20 @@ CIMReferenceOPImpl_DeviceID(CIM_LogicalDevice)
 CIMReferenceOPImpl_InstanceID(CIM_IPVersionSettingData)
 CIMReferenceOPImpl_InstanceID(CIM_IPAssignmentSettingData)
 
-CMPIObjectPath *CIM_IPConfigurationServiceRefOP(const CMPIBroker *cb, const char *ns)
+CMPIObjectPath *CIM_IPConfigurationServiceRefOP(const CMPIBroker *cb, const CMPIContext *cc, const char *ns)
 {
     LMI_IPConfigurationServiceRef ipConfigurationServiceRef;
     LMI_IPConfigurationServiceRef_Init(&ipConfigurationServiceRef, cb, ns);
     LMI_IPConfigurationServiceRef_Set_CreationClassName(&ipConfigurationServiceRef, LMI_IPConfigurationService_ClassName);
     LMI_IPConfigurationServiceRef_Set_Name(&ipConfigurationServiceRef, LMI_IPConfigurationService_ClassName);
     LMI_IPConfigurationServiceRef_Set_SystemCreationClassName(&ipConfigurationServiceRef, get_system_creation_class_name());
-    LMI_IPConfigurationServiceRef_Set_SystemName(&ipConfigurationServiceRef, get_system_name());
+    LMI_IPConfigurationServiceRef_Set_SystemName(&ipConfigurationServiceRef, lmi_get_system_name_safe(cc));
 
     CMPIStatus rc;
     return LMI_IPConfigurationServiceRef_ToObjectPath(&ipConfigurationServiceRef, &rc);
 }
 
-CMPIObjectPath *settingToLMI_IPAssignmentSettingDataSubclassOP(const Setting *setting, const CMPIBroker *cb, const char *ns)
+CMPIObjectPath *settingToLMI_IPAssignmentSettingDataSubclassOP(const Setting *setting, const CMPIBroker *cb, const CMPIContext *cc, const char *ns)
 {
     LMI_IPAssignmentSettingDataRef ipAssignmentSettingDataRef;
     LMI_IPAssignmentSettingDataRef_Init(&ipAssignmentSettingDataRef, cb, ns);

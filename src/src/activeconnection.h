@@ -25,6 +25,7 @@
 
 ActiveConnection *active_connection_new(Network *network);
 Connection *active_connection_get_connection(const ActiveConnection *activeConnection);
+const char *active_connection_get_uuid(const ActiveConnection *activeConnection);
 const Ports *active_connection_get_ports(const ActiveConnection *activeConnection);
 bool active_connection_is_port_active(const ActiveConnection *activeConnection, const Port *port);
 void active_connection_free(ActiveConnection *activeConnection);

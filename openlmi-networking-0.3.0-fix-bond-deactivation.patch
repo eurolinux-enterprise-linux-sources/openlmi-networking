@@ -1,0 +1,12 @@
+diff -up openlmi-networking-0.3.0/src/LMI_IPConfigurationServiceProvider.c.fix-bond-deactivation openlmi-networking-0.3.0/src/LMI_IPConfigurationServiceProvider.c
+--- openlmi-networking-0.3.0/src/LMI_IPConfigurationServiceProvider.c.fix-bond-deactivation	2014-10-06 15:20:02.181953650 +0200
++++ openlmi-networking-0.3.0/src/LMI_IPConfigurationServiceProvider.c	2014-10-06 15:20:28.628694768 +0200
+@@ -388,7 +388,7 @@ KUint32 LMI_IPConfigurationService_Apply
+             activeConnection = active_connections_index(activeConnections, i);
+             ports = active_connection_get_ports(activeConnection);
+             if (connection_compare(active_connection_get_connection(activeConnection), connection) &&
+-                (port == NULL || ports_find_by_uuid(ports, port_get_uuid(port)) != NULL)) {
++                (port == NULL || ports_length(ports) == 0 || ports_find_by_uuid(ports, port_get_uuid(port)) != NULL)) {
+ 
+                 res_current = network_deactivate_connection(network, activeConnection, &job);
+                 continue;

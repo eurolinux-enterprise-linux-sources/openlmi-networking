@@ -289,7 +289,16 @@ KUint32 LMI_NetworkJob_GetError(
 {
     KUint32 result = KUINT32_INIT;
 
-    KSetStatus(status, ERR_NOT_SUPPORTED);
+    // Get first error from GetErrors method
+    KInstanceA errors;
+    result = LMI_NetworkJob_GetErrors(cb, mi, context, self, &errors, status);
+    if (errors.count > 0) {
+        *Error = KInstanceA_Get(&errors, 0);
+        CIM_Error e;
+        CIM_Error_InitFromInstance(&e, cb, Error->value);
+        debug("GetError: %s", e.Message.chars);
+    }
+    KSetStatus(status, OK);
     return result;
 }
 

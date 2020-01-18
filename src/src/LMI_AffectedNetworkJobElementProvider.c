@@ -103,7 +103,7 @@ static CMPIStatus LMI_AffectedNetworkJobElementEnumInstances(
                     // Affected IPNetworkConnections
                     LMI_IPNetworkConnectionRef networkConnection;
                     LMI_IPNetworkConnectionRef_Init(&networkConnection, _cb, ns);
-                    LMI_IPNetworkConnectionRef_Set_SystemName(&networkConnection, get_system_name());
+                    LMI_IPNetworkConnectionRef_Set_SystemName(&networkConnection, lmi_get_system_name_safe(cc));
                     LMI_IPNetworkConnectionRef_Set_CreationClassName(&networkConnection, LMI_IPNetworkConnection_ClassName);
                     LMI_IPNetworkConnectionRef_Set_SystemCreationClassName(&networkConnection, get_system_creation_class_name());
                     LMI_IPNetworkConnectionRef_Set_Name(&networkConnection, affected_element->id);

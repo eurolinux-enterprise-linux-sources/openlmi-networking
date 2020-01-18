@@ -21,14 +21,31 @@
 #
 # Base class for all tests
 
-import os, sys
-import unittest
+import os
+import sys
+if sys.version_info[0] > 2 or sys.version_info[1] > 6:
+    import unittest
+else:
+    import unittest2 as unittest
 import pywbem
 import Queue
 import socket
 import threading
 import BaseHTTPServer
 import random
+
+def get_interop_namespace():
+    """
+    Get name of interop namespace.
+    """
+    cimom = os.environ.get("LMI_CIMOM_BROKER", "tog-pegasus")
+    if cimom != "tog-pegasus":
+        # We always use interop with sfcbd
+        return "root/interop"
+    if os.path.isdir("/var/lib/Pegasus/repository/root#PG_InterOp"):
+        return "root/PG_InterOp"
+    else:
+        return "root/interop"
 
 class CIMListener(object):
     """ CIM Listener
@@ -117,7 +134,7 @@ class TestBase(unittest.TestCase):
         """
         Create indication subscription for given filter name.
         """
-        namespace = "root/interop"
+        namespace = get_interop_namespace()
         hostname = socket.gethostname()
 
         if query is not None:
@@ -129,7 +146,7 @@ class TestBase(unittest.TestCase):
             filterinst['Name'] = filter_name
             filterinst['Query'] = query
             filterinst['QueryLanguage'] = querylang
-            filterinst['SourceNamespace'] = "root/cimv2"#namespace
+            filterinst['SourceNamespace'] = "root/cimv2"
             cop = pywbem.CIMInstanceName('CIM_IndicationFilter')
             cop.keybindings = { 'CreationClassName': 'CIM_IndicationFilter',
                 'SystemClassName': 'CIM_ComputerSystem',
@@ -218,3 +235,13 @@ class TestBase(unittest.TestCase):
             if indication["SourceInstance"].classname == "LMI_NetworkJob":
                 if indication["SourceInstance"]["InstanceID"] == job["InstanceID"]:
                     return indication["SourceInstance"]
+
+    def wait_for_job_completion(self, job):
+        """
+        Wait for incoming job changes indications. When we have JobState == 7,
+        the job succeeds. Otherwise wait_for_job raises an exception that
+        will propagate out of this method
+        """
+        while 1:
+            if self.wait_for_job(job)["JobState"] == 7: # Completed
+                return

@@ -24,5 +24,6 @@
 #include "globals.h"
 
 ActiveConnection *active_connection_from_objectpath(Network *network, const char *objectpath, LMIResult *res);
+void active_connection_changed_cb(void *proxy, GHashTable *properties, ActiveConnection *activeConnection);
 
 #endif

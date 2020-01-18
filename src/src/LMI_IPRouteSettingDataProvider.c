@@ -159,14 +159,14 @@ static CMPIStatus LMI_IPRouteSettingDataModifyInstance(
     }
     Setting *setting = settings_index(connection_get_settings(connection), setting_index);
     if (setting == NULL) {
-        error("Unable to get setting with index %lu", setting_index);
+        error("Unable to get setting with index %zu", setting_index);
         network_unlock(network);
         connection_free(connection);
         KReturn2(_cb, ERR_FAILED, "Unable to modify the connection");
     }
     Route *route = setting_get_route(setting, route_index);
     if (route == NULL) {
-        error("Unable to get route with index %lu", route_index);
+        error("Unable to get route with index %zu", route_index);
         network_unlock(network);
         connection_free(connection);
         KReturn2(_cb, ERR_FAILED, "Unable to modify the connection");
@@ -235,7 +235,7 @@ static CMPIStatus LMI_IPRouteSettingDataDeleteInstance(
     }
     Setting *setting = settings_index(connection_get_settings(connection), setting_index);
     if (setting == NULL) {
-        error("Unable to get setting with index %lu", setting_index);
+        error("Unable to get setting with index %zu", setting_index);
         network_unlock(network);
         connection_free(connection);
         KReturn2(_cb, ERR_FAILED, "Unable to modify the connection");

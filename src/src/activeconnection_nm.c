@@ -34,8 +34,11 @@
 #include "network_private.h"
 #include "errors.h"
 
+typedef struct ActiveConnectionPriv {
+    DBusGProxy *proxy;
+} ActiveConnectionPriv;
+
 LMIResult active_connection_read_properties(ActiveConnection *activeConnection, GHashTable *properties);
-void active_connection_changed_cb(void *proxy, GHashTable *properties, ActiveConnection *activeConnection);
 
 ActiveConnectionStatus nm_state_to_status(unsigned int state) {
     switch (state) {
@@ -45,10 +48,12 @@ ActiveConnectionStatus nm_state_to_status(unsigned int state) {
             return ACTIVE_CONNECTION_STATE_ACTIVATING;
         case NM_ACTIVE_CONNECTION_STATE_ACTIVATED:
             return ACTIVE_CONNECTION_STATE_ACTIVATED;
+#ifndef NM_VERSION_08
         case NM_ACTIVE_CONNECTION_STATE_DEACTIVATING:
             return ACTIVE_CONNECTION_STATE_DEACTIVATING;
         case NM_ACTIVE_CONNECTION_STATE_DEACTIVATED:
             return ACTIVE_CONNECTION_STATE_DEACTIVATED;
+#endif
     }
     return ACTIVE_CONNECTION_STATE_UNKNOWN;
 }
@@ -68,17 +73,24 @@ ActiveConnection *active_connection_from_objectpath(Network *network, const char
         goto err;
     }
 
-    DBusGProxy *proxy = dbus_g_proxy_new_for_name(network_priv_get_dbus_connection(network), NM_SERVICE_DBUS, objectpath, NM_DBUS_INTERFACE_ACTIVE_CONNECTION);
-    if (proxy == NULL) {
+    ActiveConnectionPriv *priv = malloc(sizeof(ActiveConnectionPriv));
+    activeConnection->priv = priv;
+    if (activeConnection->priv == NULL) {
+        error("Memory allocation failed");
+        *res = LMI_ERROR_MEMORY;
+        goto err;
+    }
+    priv->proxy = dbus_g_proxy_new_for_name(network_priv_get_dbus_connection(network), NM_SERVICE_DBUS, objectpath, NM_DBUS_INTERFACE_ACTIVE_CONNECTION);
+    if (priv->proxy == NULL) {
         error("Unable to create DBus proxy: %s %s NM_DBUS_INTERFACE_ACTIVE_CONNECTION", NM_SERVICE_DBUS, objectpath);
         *res = LMI_ERROR_BACKEND;
         goto err;
     }
 
-    dbus_g_proxy_add_signal(proxy, "PropertiesChanged", DBUS_TYPE_G_MAP_OF_VARIANT, G_TYPE_INVALID);
-    dbus_g_proxy_connect_signal(proxy, "PropertiesChanged", G_CALLBACK(active_connection_changed_cb), activeConnection, NULL);
+    dbus_g_proxy_add_signal(priv->proxy, "PropertiesChanged", DBUS_TYPE_G_MAP_OF_VARIANT, G_TYPE_INVALID);
+    dbus_g_proxy_connect_signal(priv->proxy, "PropertiesChanged", G_CALLBACK(active_connection_changed_cb), activeConnection, NULL);
 
-    GHashTable *properties = dbus_get_properties(proxy, objectpath, NM_DBUS_INTERFACE_ACTIVE_CONNECTION);
+    GHashTable *properties = dbus_get_properties(priv->proxy, objectpath, NM_DBUS_INTERFACE_ACTIVE_CONNECTION);
     if (properties == NULL) {
         error("Unable to get properties for object %s", objectpath);
         *res = LMI_ERROR_BACKEND;
@@ -90,6 +102,19 @@ ActiveConnection *active_connection_from_objectpath(Network *network, const char
 err:
     active_connection_free(activeConnection);
     return NULL;
+}
+
+void active_connection_priv_free(void *priv)
+{
+    ActiveConnectionPriv *p = priv;
+    if (p == NULL) {
+        return;
+    }
+    if (p->proxy != NULL) {
+        dbus_g_proxy_disconnect_signal(p->proxy, "PropertiesChanged", G_CALLBACK(active_connection_changed_cb), NULL);
+        g_object_unref(p->proxy);
+    }
+    free(p);
 }
 
 LMIResult active_connection_read_properties(ActiveConnection *activeConnection, GHashTable *properties)
@@ -145,7 +170,7 @@ void active_connection_changed_cb(void *proxy, GHashTable *properties, ActiveCon
     for (i = 0; i < jobs_length(network->jobs); ++i) {
         job = jobs_index(network->jobs, i);
         if (job->state == JOB_STATE_RUNNING &&
-            job->type == JOB_TYPE_APPLY_SETTING_DATA) {
+            (job->type == JOB_TYPE_APPLY_SETTING_DATA || job->type == JOB_TYPE_UNAPPLY_SETTING_DATA)) {
 
             element = job_affected_elements_find_by_type(job->affected_elements, JOB_AFFECTED_ACTIVE_CONNECTION_ID);
             if (element != NULL && strcmp(element->id, activeConnection->uuid) == 0) {
@@ -156,11 +181,19 @@ void active_connection_changed_cb(void *proxy, GHashTable *properties, ActiveCon
 
     // Call prechanged callback
     void **job_data = malloc(sizeof(void *) * jobs_length(affected_jobs));
+    if (job_data == NULL) {
+        error("Memory allocation failed");
+        jobs_free(affected_jobs, false);
+        network_unlock(network);
+        return;
+    }
     for (i = 0; i < jobs_length(affected_jobs); ++i) {
         job = jobs_index(affected_jobs, i);
         if (network->job_pre_changed_callback != NULL) {
             job_data[i] = network->job_pre_changed_callback(network, job,
                     network->job_pre_changed_callback_data);
+        } else {
+            job_data[i] = NULL;
         }
     }
 
@@ -175,20 +208,32 @@ void active_connection_changed_cb(void *proxy, GHashTable *properties, ActiveCon
 
         switch (activeConnection->status) {
             case ACTIVE_CONNECTION_STATE_ACTIVATED:
-                job_set_state(job, JOB_STATE_FINISHED_OK);
+                if (job->type == JOB_TYPE_APPLY_SETTING_DATA) {
+                    job_set_state(job, JOB_STATE_FINISHED_OK);
+                }
                 break;
             case ACTIVE_CONNECTION_STATE_ACTIVATING:
-                job_set_state(job, JOB_STATE_RUNNING);
+                if (job->type == JOB_TYPE_APPLY_SETTING_DATA) {
+                    job_set_state(job, JOB_STATE_RUNNING);
+                }
                 break;
             case ACTIVE_CONNECTION_STATE_DEACTIVATING:
+                if (job->type == JOB_TYPE_UNAPPLY_SETTING_DATA) {
+                    job_set_state(job, JOB_STATE_RUNNING);
+                    break;
+                }
             case ACTIVE_CONNECTION_STATE_DEACTIVATED:
-                job_set_state(job, JOB_STATE_FAILED);
-                for (j = 0; j < ports_length(activeConnection->ports); ++j) {
-                    port = ports_index(activeConnection->ports, j);
-                    reason = port_get_state_reason(port);
-                    job_add_error(job, reason != NULL ?
-                                  reason :
-                                  "Uknown error");
+                if (job->type == JOB_TYPE_APPLY_SETTING_DATA) {
+                    job_set_state(job, JOB_STATE_FAILED);
+                    for (j = 0; j < ports_length(activeConnection->ports); ++j) {
+                        port = ports_index(activeConnection->ports, j);
+                        reason = port_get_state_reason(port);
+                        job_add_error(job, reason != NULL ?
+                                    reason :
+                                    "Uknown error");
+                    }
+                } else {
+                    job_set_state(job, JOB_STATE_FINISHED_OK);
                 }
                 break;
             case ACTIVE_CONNECTION_STATE_UNKNOWN:

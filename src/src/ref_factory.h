@@ -21,6 +21,9 @@
 #ifndef REF_FACTORY_H
 #define REF_FACTORY_H
 
+#include <cmpidt.h>
+#include "setting.h"
+
 /**
  * Reference Factory creates CMPIObjectPath that points to instance of CMPI object.
  *
@@ -28,7 +31,7 @@
  */
 
 #define CIMReferenceOPDecl(classname) \
-CMPIObjectPath *classname##RefOP(const char *name, const char *creationClassName, const CMPIBroker *cb, const char *ns);
+CMPIObjectPath *classname##RefOP(const char *name, const char *creationClassName, const CMPIBroker *cb, const CMPIContext *cc, const char *ns);
 
 CIMReferenceOPDecl(CIM_IPAssignmentSettingData)
 CIMReferenceOPDecl(CIM_IPVersionSettingData)
@@ -44,8 +47,8 @@ CIMReferenceOPDecl(LMI_LinkAggregator8023ad)
 CIMReferenceOPDecl(LMI_LANEndpoint)
 CIMReferenceOPDecl(CIM_LANEndpoint)
 
-CMPIObjectPath *CIM_IPConfigurationServiceRefOP(const CMPIBroker *cb, const char *ns);
+CMPIObjectPath *CIM_IPConfigurationServiceRefOP(const CMPIBroker *cb, const CMPIContext *cc, const char *ns);
 
-CMPIObjectPath *settingToLMI_IPAssignmentSettingDataSubclassOP(const Setting *setting, const CMPIBroker *cb, const char *ns);
+CMPIObjectPath *settingToLMI_IPAssignmentSettingDataSubclassOP(const Setting *setting, const CMPIBroker *cb, const CMPIContext *cc, const char *ns);
 
 #endif

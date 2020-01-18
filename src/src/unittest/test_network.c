@@ -36,6 +36,10 @@
 START_TEST(test_network_port_by_mac)
 {
     Network *network = malloc(sizeof(Network));
+    if (network == NULL) {
+        ck_abort_msg("malloc failed");
+        return;
+    }
     network->ports = ports_new(5);
     Port *port;
 
@@ -66,6 +70,10 @@ END_TEST
 START_TEST(test_network_priv_activate_connection)
 {
     Network *network = malloc(sizeof(Network));
+    if (network == NULL) {
+        ck_abort_msg("malloc failed");
+        return;
+    }
     network->ports = ports_new(5);
     network->connections = connections_new(5);
     Port *port1, *port2;
@@ -199,6 +207,10 @@ START_TEST(test_network_get_ports_statistics)
     }
 
     Network *network = malloc(sizeof(Network));
+    if (network == NULL) {
+        ck_abort_msg("malloc failed");
+        return;
+    }
     network->ports = ports_new(3);
 
     Port *port = port_new();
@@ -210,7 +222,12 @@ START_TEST(test_network_get_ports_statistics)
     ports_add(network->ports, port);
 
     char *eth0;
-    asprintf(&eth0, "eth0: %lu %lu %lu 0 0 0 0 0 %lu %lu %lu 0 0 %lu 0 0\n", RXB1, RXP1, RXE1, TXB1, TXP1, TXE1, TXC1);
+    if (asprintf(&eth0, "eth0: %lu %lu %lu 0 0 0 0 0 %lu %lu %lu 0 0 %lu 0 0\n", RXB1, RXP1, RXE1, TXB1, TXP1, TXE1, TXC1) < 0) {
+        ck_abort_msg("asprintf failed");
+        ports_free(network->ports, true);
+        free(network);
+        return;
+    }
 
     FILE *tmp = fdopen(fd, "w+");
     if (tmp == NULL) {

@@ -71,7 +71,7 @@ void port_added_callback(Network *network, Port *port, void *data)
     // Create indication for added LMI_IPNetworkConnection
     LMI_IPNetworkConnection ipp;
     LMI_IPNetworkConnection_Init(&ipp, _cb, ns);
-    port_to_IPNetworkConnection(port, &ipp);
+    port_to_IPNetworkConnection(port, &ipp, network_get_background_context(network));
     if (!KOkay(rc)) {
         error("Unable to convert port to "
               LMI_IPNetworkConnection_ClassName

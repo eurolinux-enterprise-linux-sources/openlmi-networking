@@ -40,6 +40,12 @@ ActiveConnection *active_connection_new(Network *network)
     return activeConnection;
 }
 
+const char *active_connection_get_uuid(const ActiveConnection *activeConnection)
+{
+    assert(activeConnection);
+    return activeConnection->uuid;
+}
+
 Connection *active_connection_get_connection(const ActiveConnection *activeConnection)
 {
     assert(activeConnection);
@@ -58,6 +64,10 @@ void active_connection_free(ActiveConnection *activeConnection)
     if (activeConnection == NULL) {
         return;
     }
+    if (activeConnection->priv != NULL) {
+        active_connection_priv_free(activeConnection->priv);
+    }
+
     free(activeConnection->uuid);
     ports_free(activeConnection->ports, false);
     free(activeConnection);
@@ -81,7 +91,7 @@ LIST_IMPL(ActiveConnection, active_connection)
 
 bool active_connections_is_connection_active_on_port(const ActiveConnections *activeConnections, const Connection *connection, const Port *port)
 {
-    if (activeConnections == NULL || connection == NULL || port == NULL) {
+    if (activeConnections == NULL || connection == NULL) {
         return false;
     }
     ActiveConnection *activeConnection;
@@ -89,8 +99,8 @@ bool active_connections_is_connection_active_on_port(const ActiveConnections *ac
         activeConnection = active_connections_index(activeConnections, i);
 
         if (connection_compare(activeConnection->connection, connection)) {
-            if (active_connection_is_port_active(activeConnection, port)) {
-                return true;
+            if (port == NULL || active_connection_is_port_active(activeConnection, port)) {
+                return activeConnection->status == ACTIVE_CONNECTION_STATE_ACTIVATED;
             }
         }
     }

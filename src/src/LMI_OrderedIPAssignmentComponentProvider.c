@@ -98,7 +98,7 @@ static CMPIStatus LMI_OrderedIPAssignmentComponentEnumInstances(
                 classname = LMI_IPAssignmentSettingData_ClassName;
         }
         instanceid = id_to_instanceid(connection_get_id(connection), classname);
-        CMPIObjectPath *groupComponentOP = CIM_IPAssignmentSettingDataRefOP(instanceid, classname, _cb, ns);
+        CMPIObjectPath *groupComponentOP = CIM_IPAssignmentSettingDataRefOP(instanceid, classname, _cb, cc, ns);
         free(instanceid);
 
         // Find if there are slave connections for this connection
@@ -123,7 +123,7 @@ static CMPIStatus LMI_OrderedIPAssignmentComponentEnumInstances(
                 }
 
                 instanceid = id_to_instanceid(connection_get_id(slave), classname);
-                CMPIObjectPath *partComponentOP = CIM_IPAssignmentSettingDataRefOP(instanceid, classname, _cb, ns);
+                CMPIObjectPath *partComponentOP = CIM_IPAssignmentSettingDataRefOP(instanceid, classname, _cb, cc, ns);
                 free(instanceid);
                 LMI_OrderedIPAssignmentComponent_SetObjectPath_PartComponent(&w, partComponentOP);
                 LMI_OrderedIPAssignmentComponent_Set_AssignedSequence(&w, 1);
@@ -145,7 +145,7 @@ static CMPIStatus LMI_OrderedIPAssignmentComponentEnumInstances(
                 continue;
             }
 
-            CMPIObjectPath *partComponentOP = settingToLMI_IPAssignmentSettingDataSubclassOP(setting, _cb, ns);
+            CMPIObjectPath *partComponentOP = settingToLMI_IPAssignmentSettingDataSubclassOP(setting, _cb, cc, ns);
 
             LMI_OrderedIPAssignmentComponent w;
             LMI_OrderedIPAssignmentComponent_Init(&w, _cb, ns);
@@ -179,7 +179,7 @@ static CMPIStatus LMI_OrderedIPAssignmentComponentEnumInstances(
             for (k = 0; k < setting_get_routes_length(setting); ++k) {
                 LMI_IPRouteSettingDataRef routeRef;
                 LMI_IPRouteSettingDataRef_Init(&routeRef, _cb, ns);
-                if (asprintf(&name, "%s_%ld", setting_get_id(setting), k) < 0) {
+                if (asprintf(&name, "%s_%zu", setting_get_id(setting), k) < 0) {
                     error("Memory allocation failed");
                     CMSetStatus(&res, CMPI_RC_ERR_FAILED);
                     break;

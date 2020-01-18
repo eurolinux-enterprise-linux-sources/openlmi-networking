@@ -22,6 +22,7 @@
 
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #include "activeconnection.h"
 #include "dbus_wrapper.h"
@@ -36,6 +37,7 @@
 #include "nm_support.h"
 #include "connection_private.h"
 #include "job.h"
+#include "activeconnection_private.h"
 
 int DBUS_BUS = DBUS_BUS_SYSTEM;
 const char *NM_SERVICE_DBUS = NM_DBUS_SERVICE;
@@ -173,12 +175,15 @@ LMIResult network_priv_activate_connection(Network *network, const Port *port, c
 {
     NetworkPriv *priv = network->priv;
     GError *err = NULL;
-    char *activeConnection;
+    char *activeConnectionPath;
     if (!dbus_g_proxy_call(priv->managerProxy, "ActivateConnection", &err,
+#ifdef NM_VERSION_08
+            G_TYPE_STRING, NM_DBUS_SERVICE_SYSTEM_SETTINGS,
+#endif
             DBUS_TYPE_G_OBJECT_PATH, connection->uuid,
-            DBUS_TYPE_G_OBJECT_PATH, port_get_uuid(port),
+            DBUS_TYPE_G_OBJECT_PATH, port != NULL ? port_get_uuid(port) : "/",
             DBUS_TYPE_G_OBJECT_PATH, "/", G_TYPE_INVALID,
-            DBUS_TYPE_G_OBJECT_PATH, &activeConnection, G_TYPE_INVALID)) {
+            DBUS_TYPE_G_OBJECT_PATH, &activeConnectionPath, G_TYPE_INVALID)) {
 
         error("Unable to activate connection %s on port %s: %s",
               connection ? connection_get_name(connection) : "NULL",
@@ -199,17 +204,93 @@ LMIResult network_priv_activate_connection(Network *network, const Port *port, c
         }
     }
 
+    // Get given active connection to start monitoring its PropertiesChanged signal
+    ActiveConnection *activeConnection = NULL;
+    for (size_t i = 0; i < active_connections_length(network->activeConnections); i++) {
+        if (strcmp(active_connection_get_uuid(active_connections_index(network->activeConnections, i)), activeConnectionPath) == 0) {
+            activeConnection = active_connections_index(network->activeConnections, i);
+            break;
+        }
+    }
+    if (activeConnection == NULL) {
+        LMIResult res = LMI_SUCCESS;
+        activeConnection = active_connection_from_objectpath(network, activeConnectionPath, &res);
+        if (res != LMI_SUCCESS) {
+            free(activeConnectionPath);
+            return res;
+        }
+        if ((res = active_connections_add(network->activeConnections, activeConnection)) != LMI_SUCCESS) {
+            active_connection_free(activeConnection);
+            free(activeConnectionPath);
+            return res;
+        }
+    }
+
     *job = job_new(JOB_TYPE_APPLY_SETTING_DATA);
-    job_add_affected_element(*job, JOB_AFFECTED_ACTIVE_CONNECTION_ID, activeConnection);
-    debug("Job monitoring ActiveConnection %s started", activeConnection);
-    free(activeConnection);
-    job_add_affected_element(*job, JOB_AFFECTED_PORT_ID, port_get_id(port));
-    job_add_affected_element(*job, JOB_AFFECTED_CONNECTION_ID, connection_get_id(connection));
+    if (job_add_affected_element(*job, JOB_AFFECTED_ACTIVE_CONNECTION_ID, activeConnectionPath) != LMI_SUCCESS) {
+        job_free(*job);
+        *job = NULL;
+        free(activeConnectionPath);
+        return LMI_ERROR_MEMORY;
+    }
+    debug("Job monitoring ActiveConnection %s started", activeConnectionPath);
+    free(activeConnectionPath);
+    if (port != NULL && job_add_affected_element(*job, JOB_AFFECTED_PORT_ID, port_get_id(port)) != LMI_SUCCESS) {
+        job_free(*job);
+        *job = NULL;
+        return LMI_ERROR_MEMORY;
+    }
+    if (job_add_affected_element(*job, JOB_AFFECTED_CONNECTION_ID, connection_get_id(connection)) != LMI_SUCCESS) {
+        job_free(*job);
+        *job = NULL;
+        return LMI_ERROR_MEMORY;
+    }
     job_set_state(*job, JOB_STATE_RUNNING);
-    jobs_add(network->jobs, *job);
+    if (jobs_add(network->jobs, *job) != LMI_SUCCESS) {
+        job_free(*job);
+        *job = NULL;
+        return LMI_ERROR_MEMORY;
+    }
     if (network->job_added_callback != NULL) {
         network->job_added_callback(network, *job, network->job_added_callback_data);
     }
+    return LMI_JOB_STARTED;
+}
+
+LMIResult network_priv_deactivate_connection(Network *network, const ActiveConnection *activeConnection, Job **job)
+{
+    NetworkPriv *priv = network->priv;
+    GError *err = NULL;
+    *job = job_new(JOB_TYPE_UNAPPLY_SETTING_DATA);
+    if (job_add_affected_element(*job, JOB_AFFECTED_ACTIVE_CONNECTION_ID, activeConnection->uuid) != LMI_SUCCESS) {
+        job_free(*job);
+        *job = NULL;
+        return LMI_ERROR_MEMORY;
+    }
+    debug("Job monitoring ActiveConnection %s started", activeConnection->uuid);
+    job_set_state(*job, JOB_STATE_RUNNING);
+    if (jobs_add(network->jobs, *job) != LMI_SUCCESS) {
+        job_free(*job);
+        *job = NULL;
+        return LMI_ERROR_MEMORY;
+    }
+    if (network->job_added_callback != NULL) {
+        network->job_added_callback(network, *job, network->job_added_callback_data);
+    }
+
+    if (!dbus_g_proxy_call(priv->managerProxy, "DeactivateConnection", &err,
+        DBUS_TYPE_G_OBJECT_PATH, activeConnection->uuid, G_TYPE_INVALID, G_TYPE_INVALID)) {
+
+        error("Unable to deactivate connection %s: %s",
+              activeConnection->connection ? connection_get_name(activeConnection->connection) : "NULL",
+              err->message);
+
+        //char *error_name = err->message + strlen(err->message) + 1;
+        // TODO: what errors we can get? NM docs don't mention anything
+        job_set_state(*job, JOB_STATE_FAILED);
+        return LMI_ERROR_UNKNOWN;
+    }
+
     return LMI_JOB_STARTED;
 }
 
@@ -402,15 +483,29 @@ LMIResult network_priv_get_active_connections(Network *network)
     LMIResult res = LMI_SUCCESS;
     NetworkPriv *priv = network->priv;
     GPtrArray *array = dbus_property_array(priv->properties, "ActiveConnections");
+    ActiveConnections *old_active_connections = network->activeConnections;
+    ActiveConnection *activeConnection;
 
     if (array != NULL) {
         network->activeConnections = active_connections_new(array->len);
 
         const char *objectpath;
-        ActiveConnection *activeConnection;
+        size_t j;
         for (guint i = 0; i < array->len; ++i) {
             objectpath = (char *) g_ptr_array_index(array, i);
-            activeConnection = active_connection_from_objectpath(network, objectpath, &res);
+            activeConnection = NULL;
+
+            // try to reuse existing active connection
+            for (j = 0; j < active_connections_length(old_active_connections); j++) {
+                if (strcmp(active_connection_get_uuid(active_connections_index(old_active_connections, j)), objectpath) == 0) {
+                    activeConnection = active_connections_pop(old_active_connections, j);
+                    break;
+                }
+            }
+            if (activeConnection == NULL) {
+                activeConnection = active_connection_from_objectpath(network, objectpath, &res);
+            }
+
             if (activeConnection == NULL) {
                 continue;
             }
@@ -419,6 +514,16 @@ LMIResult network_priv_get_active_connections(Network *network)
     } else {
         network->activeConnections = active_connections_new(0);
     }
+    // Set the deleted activeConnections as deleted and emit the changed callback
+    for (size_t i = 0; i < active_connections_length(old_active_connections); i++) {
+        activeConnection = active_connections_index(old_active_connections, i);
+        activeConnection->status = ACTIVE_CONNECTION_STATE_DEACTIVATED;
+        network_unlock(network);
+        // Callback handler needs to have the network lock unlocked
+        active_connection_changed_cb(NULL, NULL, activeConnection);
+        network_lock(network);
+    }
+    active_connections_free(old_active_connections, true);
     return res;
 }
 
@@ -444,12 +549,40 @@ LMIResult network_priv_create_connection(Network *network, Connection *connectio
 
     if (!dbus_g_proxy_call(priv->connectionProxy, "AddConnection", &err,
             DBUS_TYPE_G_MAP_OF_MAP_OF_VARIANT, hash, G_TYPE_INVALID,
-            DBUS_TYPE_G_OBJECT_PATH, &objectpath, G_TYPE_INVALID)) {
+#ifndef NM_VERSION_08
+            // There is no objectpath return value in NM 0.8
+            DBUS_TYPE_G_OBJECT_PATH, &objectpath,
+#endif
+            G_TYPE_INVALID)) {
 
         char *error_name = err->message + strlen(err->message) + 1;
         error("Creating of connection failed: %d %s %s", err->code, err->message, error_name);
         res = LMI_ERROR_BACKEND;
     }
+#ifdef NM_VERSION_08
+    // TODO: get rid of this once NetworkManager 0.8 starts returning objectpath
+
+    // Wait until new connection is created
+    network_unlock(network);
+    const Connections *connections;
+    size_t i;
+    bool found = false;
+    while (!found) {
+        debug("Waiting for connection %s to appear", connection_get_id(connection));
+        sleep(1);
+        network_lock(network);
+        connections = network_get_connections(network);
+        for (i = 0; i < connections_length(connections); i++) {
+            debug("Checking: %s", connection_get_id(connections_index(connections, i)));
+            if (strcmp(connection_get_id(connections_index(connections, i)), connection_get_id(connection)) == 0) {
+                objectpath = connection_get_uuid(connections_index(connections, i));
+                found = true;
+                break;
+            }
+        }
+        network_unlock(network);
+    }
+#endif
     if (objectpath != NULL) {
         if ((connection->uuid = strdup(objectpath)) == NULL) {
             error("Memory allocation failed");

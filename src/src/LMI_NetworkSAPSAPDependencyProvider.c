@@ -81,22 +81,26 @@ static CMPIStatus LMI_NetworkSAPSAPDependencyEnumInstances(
     for (size_t i = 0; i < ports_length(ports); ++i) {
         port = ports_index(ports, i);
         ipconfig = port_get_ipconfig(port);
-        ipNetworkConnectionOP = CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, ns);
+        ipNetworkConnectionOP = CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, cc, ns);
 
         for (j = 0; j < addresses_length(ipconfig->addresses); ++j) {
-            asprintf(&name, "%s_%ld", port_get_id(port), j);
+            if (asprintf(&name, "%s_%zu", port_get_id(port), j) < 0) {
+                error("Memory allocation failed");
+                CMSetStatus(&res, CMPI_RC_ERR_FAILED);
+                break;
+            }
 
             LMI_NetworkSAPSAPDependency_SetObjectPath_Antecedent(&w, ipNetworkConnectionOP);
-            LMI_NetworkSAPSAPDependency_SetObjectPath_Dependent(&w, CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, ns));
+            LMI_NetworkSAPSAPDependency_SetObjectPath_Dependent(&w, CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, cc, ns));
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_NetworkSAPSAPDependency_ClassName);
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);
                 break;
             }
 
-            LMI_NetworkSAPSAPDependency_SetObjectPath_Antecedent(&w, CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, ns));
+            LMI_NetworkSAPSAPDependency_SetObjectPath_Antecedent(&w, CIM_ServiceAccessPointRefOP(name, LMI_IPProtocolEndpoint_ClassName, _cb, cc, ns));
             free(name);
-            LMI_NetworkSAPSAPDependency_SetObjectPath_Dependent(&w, CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_DNSProtocolEndpoint_ClassName, _cb, ns));
+            LMI_NetworkSAPSAPDependency_SetObjectPath_Dependent(&w, CIM_ServiceAccessPointRefOP(port_get_id(port), LMI_DNSProtocolEndpoint_ClassName, _cb, cc, ns));
             if (!ReturnInstance(cr, w)) {
                 error("Unable to return instance of class " LMI_NetworkSAPSAPDependency_ClassName);
                 CMSetStatus(&res, CMPI_RC_ERR_FAILED);

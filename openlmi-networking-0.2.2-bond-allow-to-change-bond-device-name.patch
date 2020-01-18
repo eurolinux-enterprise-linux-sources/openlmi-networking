@@ -1,0 +1,31 @@
+From d6e15dbeee8b623a5a28baf38f68bb295ff1f7b2 Mon Sep 17 00:00:00 2001
+From: Radek Novacek <rnovacek@redhat.com>
+Date: Wed, 12 Feb 2014 14:00:58 +0100
+Subject: [PATCH 3/4] bond: Allow to change bond device name
+
+---
+ src/LMI_BondingMasterSettingDataProvider.c | 8 ++++++++
+ 1 file changed, 8 insertions(+)
+
+diff --git a/src/LMI_BondingMasterSettingDataProvider.c b/src/LMI_BondingMasterSettingDataProvider.c
+index 26e53ca..d8ca80d 100644
+--- a/src/LMI_BondingMasterSettingDataProvider.c
++++ b/src/LMI_BondingMasterSettingDataProvider.c
+@@ -112,6 +112,14 @@ static CMPIStatus LMI_BondingMasterSettingDataModifyInstance(
+         KReturn2(_cb, ERR_FAILED, "Invalid type of the SettingData");
+     }
+     BondSetting *bond = setting_get_bond_setting(setting);
++    if (w.InterfaceName.exists && !w.InterfaceName.null) {
++        free(bond->interface_name);
++        if ((bond->interface_name = strdup(w.InterfaceName.chars)) == NULL) {
++            connection_free(connection);
++            network_unlock(network);
++            KReturn2(_cb, ERR_FAILED, "Memory allocation failed");
++        }
++    }
+     if (w.Mode.exists && !w.Mode.null) {
+         if (w.Mode.value > 6) {
+             connection_free(connection);
+-- 
+1.8.5.3
+

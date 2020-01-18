@@ -22,7 +22,9 @@
 #include <konkret/konkret.h>
 #include "LMI_IPElementSettingData.h"
 #include "LMI_BondingMasterSettingData.h"
+#include "LMI_BondingSlaveSettingData.h"
 #include "LMI_BridgingMasterSettingData.h"
+#include "LMI_BridgingSlaveSettingData.h"
 #include <LMI_IPAssignmentSettingData.h>
 #include <LMI_IPNetworkConnection.h>
 #include <LMI_LinkAggregator8023ad.h>
@@ -80,7 +82,7 @@ static CMPIStatus LMI_IPElementSettingDataEnumInstances(
         network_unlock(network);
         KReturn(OK);
     }
-    Connection *connection;
+    Connection *connection, *master;
     const Ports *ports = network_get_ports(network);
     Port *port;
     Ports *available_for_ports;
@@ -100,6 +102,7 @@ static CMPIStatus LMI_IPElementSettingDataEnumInstances(
         }
         connection = connections_index(connections, i);
 
+        instanceid = NULL;
         switch (connection_get_type(connection)) {
             case CONNECTION_TYPE_BOND:
                 instanceid = id_to_instanceid(connection_get_id(connection), LMI_BondingMasterSettingData_ClassName);
@@ -110,9 +113,29 @@ static CMPIStatus LMI_IPElementSettingDataEnumInstances(
                 settingDataOP = CIM_IPAssignmentSettingDataRefOP(instanceid, LMI_BridgingMasterSettingData_ClassName, _cb, ns);
                 break;
             default:
-                instanceid = id_to_instanceid(connection_get_id(connection), LMI_IPAssignmentSettingData_ClassName);
-                settingDataOP = CIM_IPAssignmentSettingDataRefOP(instanceid, LMI_IPAssignmentSettingData_ClassName, _cb, ns);
+                master = connection_get_master_connection(connection);
+                if (master != NULL) {
+                    switch (connection_get_type(master)) {
+                        case CONNECTION_TYPE_BOND:
+                            instanceid = id_to_instanceid(connection_get_id(connection), LMI_BondingSlaveSettingData_ClassName);
+                            settingDataOP = CIM_IPAssignmentSettingDataRefOP(instanceid, LMI_BondingSlaveSettingData_ClassName, _cb, ns);
+                            break;
+                        case CONNECTION_TYPE_BRIDGE:
+                            instanceid = id_to_instanceid(connection_get_id(connection), LMI_BridgingMasterSettingData_ClassName);
+                            settingDataOP = CIM_IPAssignmentSettingDataRefOP(instanceid, LMI_BridgingMasterSettingData_ClassName, _cb, ns);
+                            break;
+                        default:
+                            error("Wrong master setting data type: %d", connection_get_type(master));
+                            break;
+                    }
+                } else {
+                    instanceid = id_to_instanceid(connection_get_id(connection), LMI_IPAssignmentSettingData_ClassName);
+                    settingDataOP = CIM_IPAssignmentSettingDataRefOP(instanceid, LMI_IPAssignmentSettingData_ClassName, _cb, ns);
+                }
                 break;
+        }
+        if (instanceid == NULL) {
+            continue;
         }
         free(instanceid);
         LMI_IPElementSettingData_SetObjectPath_SettingData(&w, settingDataOP);
@@ -131,12 +154,22 @@ static CMPIStatus LMI_IPElementSettingDataEnumInstances(
 
             isActive = active_connections_is_connection_active_on_port(activeConnections, connection, port);
 
-            if ((port_get_type(port) == TYPE_BOND) && (connection_get_type(connection) == CONNECTION_TYPE_BOND)) {
-                // Association between IPAssignmentSettingData and LinkAggregator8023ad
-                managedElementOP = CIM_ProtocolEndpointRefOP(port_get_id(port), LMI_LinkAggregator8023ad_ClassName, _cb, ns);
-            } else if ((port_get_type(port) == TYPE_BRIDGE) && (connection_get_type(connection) == CONNECTION_TYPE_BRIDGE)) {
-                // Association between IPAssignmentSettingData and SwitchService
-                managedElementOP = CIM_ServiceRefOP(port_get_id(port), LMI_SwitchService_ClassName, _cb, ns);
+            if (connection_get_type(connection) == CONNECTION_TYPE_BOND) {
+                if (port_get_type(port) == TYPE_BOND) {
+                    // Association between IPAssignmentSettingData and LinkAggregator8023ad
+                    managedElementOP = CIM_ProtocolEndpointRefOP(port_get_id(port), LMI_LinkAggregator8023ad_ClassName, _cb, ns);
+                } else {
+                    // Master connection doesn't have association to any other port than LinkAggregator8023ad
+                    continue;
+                }
+            } else if (connection_get_type(connection) == CONNECTION_TYPE_BRIDGE) {
+                if (port_get_type(port) == TYPE_BRIDGE) {
+                    // Association between IPAssignmentSettingData and SwitchService
+                    managedElementOP = CIM_ServiceRefOP(port_get_id(port), LMI_SwitchService_ClassName, _cb, ns);
+                } else {
+                    // Master connection doesn't have association to any other port than SwitchService
+                    continue;
+                }
             } else {
                 // Association between IPAssignmentSettingData and IPNetworkConnection
                 managedElementOP = CIM_ProtocolEndpointRefOP(port_get_id(port), LMI_IPNetworkConnection_ClassName, _cb, ns);

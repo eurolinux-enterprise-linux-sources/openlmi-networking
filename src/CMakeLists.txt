@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 2.6)
 
 set(OPENLMI_VERSION_MAJOR 0)
 set(OPENLMI_VERSION_MINOR 2)
-set(OPENLMI_VERSION_REVISION 1)
+set(OPENLMI_VERSION_REVISION 2)
 set(OPENLMI_VERSION "${OPENLMI_VERSION_MAJOR}.${OPENLMI_VERSION_MINOR}.${OPENLMI_VERSION_REVISION}")
 
 # Create tarball from latest git (including uncommitted changes)

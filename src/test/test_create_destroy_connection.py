@@ -413,14 +413,14 @@ class TestCreatingConnections(TestBase):
         self.assertIn(rc[0], [0, 4096])
         if rc[0] == 4096:
             # Job is started, wait for finish
-            indication = self.get_indication(10)
-            self.assertEqual(indication["SourceInstance"].classname, "LMI_NetworkJob")
+            job = self.wait_for_job(rc[1]["Job"], 60)
+            self.assertEqual(job.classname, "LMI_NetworkJob")
             # Save the error message if the method fails
             errors = []
-            if indication["SourceInstance"]["JobState"] != 7:
-                for err in self.wbemconnection.InvokeMethod("GetErrors", rc[1]["Job"])[1]['Errors']:
+            if job["JobState"] != 7:
+                for err in self.wbemconnection.InvokeMethod("GetErrors", job)[1]['Errors']:
                     errors.append(err["Message"])
-            self.assertEqual(indication["SourceInstance"]["JobState"], 7, # Completed
+            self.assertEqual(job["JobState"], 7, # Completed
                              "Unable to activate connection: %s" % ("; ".join(errors)))
     ## Static
 

@@ -1,0 +1,61 @@
+From 8f0c500bbff649bce9511415217984716d30f8ec Mon Sep 17 00:00:00 2001
+From: Radek Novacek <rnovacek@redhat.com>
+Date: Wed, 12 Feb 2014 14:51:12 +0100
+Subject: [PATCH 4/4] bridge/bond: make sure that the enslaved setting has
+ unique name
+
+Previous way for getting automatic slave setting caption was fragile and
+could result in duplicated setting captions.
+---
+ src/LMI_IPNetworkConnectionCapabilitiesProvider.c | 33 +++++++++++++++--------
+ 1 file changed, 22 insertions(+), 11 deletions(-)
+
+diff --git a/src/LMI_IPNetworkConnectionCapabilitiesProvider.c b/src/LMI_IPNetworkConnectionCapabilitiesProvider.c
+index 0f9b5c3..30d543c 100644
+--- a/src/LMI_IPNetworkConnectionCapabilitiesProvider.c
++++ b/src/LMI_IPNetworkConnectionCapabilitiesProvider.c
+@@ -239,19 +239,30 @@ static int get_bridge_id(Network *network)
+ static LMIResult enslave(Network *network, Connection *master_connection, Port *port, char **slave_id)
+ {
+     LMIResult res;
+-    // find number of slaves of master_connection
++
++    // find the name for connection - take the lower number that is not taken
++    // and has format '<master> Slave <nr>'
+     const Connections *connections = network_get_connections(network);
+-    const char *master_id = connection_get_id(master_connection);
+-    size_t count = 0;
+-    for (size_t i = 0; i < connections_length(connections); ++i) {
+-        if (strcmp(connection_get_id(connections_index(connections, i)), master_id) ==0) {
+-            count++;
++    char *name = NULL;
++    size_t i;
++    bool free_name;
++    // We must limit the number of tries somehow, 1024 should be enough
++    for (size_t count = 1; count <= 1024; count++) {
++        free(name);
++        if (asprintf(&name, "%s Slave %zu", connection_get_name(master_connection), count) < 0) {
++            res = LMI_ERROR_MEMORY;
++            return res;
++        }
++        free_name = true;
++        for (i = 0; i < connections_length(connections); ++i) {
++            if (strcmp(connection_get_name(connections_index(connections, i)), name) == 0) {
++                free_name = false;
++                break;
++            }
++        }
++        if (free_name) {
++            break;
+         }
+-    }
+-    char *name;
+-    if (asprintf(&name, "%s Slave %ld", connection_get_name(master_connection), count + 1) < 0) {
+-        res = LMI_ERROR_MEMORY;
+-        return res;
+     }
+     Connection *connection = connection_new(network, NULL, name);
+     free(name);
+-- 
+1.8.5.3
+

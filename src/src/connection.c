@@ -206,6 +206,10 @@ LMIResult connection_set_port(Connection *connection, Port *port)
 
 LMIResult connection_set_master_connection(Connection *connection, const Connection *master, SettingType type)
 {
+    if (master == NULL) {
+        connection->master_id = NULL;
+        return LMI_SUCCESS;
+    }
     if ((connection->master_id = strdup(master->id)) == NULL) {
         error("Memory allocation failed");
         return LMI_ERROR_MEMORY;
@@ -227,7 +231,7 @@ LMIResult connection_set_master_connection(Connection *connection, const Connect
 
 Connection *connection_get_master_connection(Connection *connection)
 {
-    if (connection->master_id == NULL) {
+    if (connection == NULL || connection->master_id == NULL) {
         return NULL;
     }
     const Connections *connections = connection->network->connections;

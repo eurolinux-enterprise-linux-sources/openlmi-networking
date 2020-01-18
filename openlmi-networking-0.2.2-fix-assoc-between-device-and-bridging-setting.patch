@@ -1,0 +1,29 @@
+From bfbaeef31859683de63af29d101451b11789cf33 Mon Sep 17 00:00:00 2001
+From: Radek Novacek <rnovacek@redhat.com>
+Date: Wed, 12 Feb 2014 10:10:06 +0100
+Subject: [PATCH 1/4] Fix association between device and its bridging setting
+
+There was wrong InstanceId - using LMI_BridgingMasterSettingData class
+name instead of proper LMI_BridgingSlaveSettingData.
+---
+ src/LMI_IPElementSettingDataProvider.c | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/src/LMI_IPElementSettingDataProvider.c b/src/LMI_IPElementSettingDataProvider.c
+index 91dffd8..ac596e7 100644
+--- a/src/LMI_IPElementSettingDataProvider.c
++++ b/src/LMI_IPElementSettingDataProvider.c
+@@ -121,8 +121,8 @@ static CMPIStatus LMI_IPElementSettingDataEnumInstances(
+                             settingDataOP = CIM_IPAssignmentSettingDataRefOP(instanceid, LMI_BondingSlaveSettingData_ClassName, _cb, ns);
+                             break;
+                         case CONNECTION_TYPE_BRIDGE:
+-                            instanceid = id_to_instanceid(connection_get_id(connection), LMI_BridgingMasterSettingData_ClassName);
+-                            settingDataOP = CIM_IPAssignmentSettingDataRefOP(instanceid, LMI_BridgingMasterSettingData_ClassName, _cb, ns);
++                            instanceid = id_to_instanceid(connection_get_id(connection), LMI_BridgingSlaveSettingData_ClassName);
++                            settingDataOP = CIM_IPAssignmentSettingDataRefOP(instanceid, LMI_BridgingSlaveSettingData_ClassName, _cb, ns);
+                             break;
+                         default:
+                             error("Wrong master setting data type: %d", connection_get_type(master));
+-- 
+1.8.5.3
+

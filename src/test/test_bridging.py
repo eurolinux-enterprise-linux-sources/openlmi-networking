@@ -3,6 +3,7 @@ from test_base import TestBase
 import pywbem
 import time
 import unittest
+import random
 
 class TestBriding(TestBase):
     def setUp(self):
@@ -42,6 +43,15 @@ class TestBriding(TestBase):
         self.assertTrue(rc[1] is not None)
         settingData = self.wbemconnection.GetInstance(rc[1]["SettingData"])
 
+        slaves = self.wbemconnection.AssociatorNames(settingData.path,
+                ResultClass="LMI_BridgingSlaveSettingData",
+                AssocClass="LMI_OrderedIPAssignmentComponent")
+        self.assertEqual(len(slaves), 1)
+
+        # Save the slave SettingData
+        slaveSettingDataList = {}
+        slaveSettingDataList[self.networkConnections[0]] = slaves[0]
+
         # Delete the connection on cleanup
         # Deleting master connection will also delete the slaves
         self.addCleanup(self.wbemconnection.DeleteInstance, settingData.path)
@@ -66,7 +76,9 @@ class TestBriding(TestBase):
         settingData["AgeingTime"] = pywbem.Uint32(301)
         settingData["ForwardDelay"] =  pywbem.Uint32(16)
         settingData["HelloTime"] = pywbem.Uint32(3)
-        settingData["InterfaceName"] = "bridgeX"
+        # Use random name to minimize probability to reuse existing port name
+        bridgeName = "bridge%d" % random.randint(0, 100)
+        settingData["InterfaceName"] = bridgeName
         settingData["MaxAge"] = pywbem.Uint32(21)
         settingData["Priority"] = pywbem.Uint32(128)
         self.wbemconnection.ModifyInstance(settingData)
@@ -76,7 +88,7 @@ class TestBriding(TestBase):
         self.assertEqual(settingData["AgeingTime"], 301)
         self.assertEqual(settingData["ForwardDelay"], 16)
         self.assertEqual(settingData["HelloTime"], 3)
-        self.assertEqual(settingData["InterfaceName"], "bridgeX")
+        self.assertEqual(settingData["InterfaceName"], bridgeName)
         self.assertEqual(settingData["MaxAge"], 21)
         self.assertEqual(settingData["Priority"], 128)
         self.assertEqual(settingData["STP"], True)
@@ -90,6 +102,8 @@ class TestBriding(TestBase):
             rc = self.wbemconnection.InvokeMethod("LMI_CreateSlaveSetting", cap.path, MasterSettingData=settingData.path)
             self.assertEqual(len(rc), 2)
             self.assertEqual(rc[0], 0)
+            self.assertEqual(rc[1]["SettingData"].classname, "LMI_BridgingSlaveSettingData")
+            slaveSettingDataList[networkConnection] = rc[1]["SettingData"]
 
         # Check if the slave SettingDatas are associated to master
         assoc = self.wbemconnection.Associators(settingData.path, ResultClass="LMI_BridgingSlaveSettingData")
@@ -108,17 +122,42 @@ class TestBriding(TestBase):
         self.assertEqual(slaveSettingData["PathCost"], 101)
         self.assertEqual(slaveSettingData["HairpinMode"], True)
 
+        # Activate connection using MasterSettingData
         for networkConnection in self.networkConnections:
             rc = self.wbemconnection.InvokeMethod("ApplySettingToIPNetworkConnection", self.confService.path,
                     SettingData=settingData.path, IPNetworkConnection=networkConnection.path, Mode=pywbem.Uint16(32768))
             self.assertIn(rc[0], [0, 4096])
             if rc[0] == 4096: # Job started
-                job = self.wait_for_job(rc[1]["Job"])
+                # Wait for job completed indication
+                job = { "JobState": 4 }
+                while job["JobState"] == 4:
+                    job = self.wait_for_job(rc[1]["Job"])
+
                 self.assertEqual(job["JobState"], 7) # Completed
 
+        # Deactivate connection
+        for networkConnection in self.networkConnections:
+            rc = self.wbemconnection.InvokeMethod("ApplySettingToIPNetworkConnection", self.confService.path,
+                    SettingData=settingData.path, IPNetworkConnection=networkConnection.path, Mode=pywbem.Uint16(32769))
+            self.assertIn(rc[0], [0, 4096])
+            if rc[0] == 4096: # Job started
+                # Wait for job completed indication
+                job = { "JobState": 4 }
+                while job["JobState"] == 4:
+                    job = self.wait_for_job(rc[1]["Job"])
+                self.assertEqual(job["JobState"], 7) # Completed
 
-        # Give NM some time to active the connections
-        time.sleep(5)
+        # Activate connection using SlaveSettingData
+        for networkConnection in self.networkConnections:
+            rc = self.wbemconnection.InvokeMethod("ApplySettingToIPNetworkConnection", self.confService.path,
+                    SettingData=slaveSettingDataList[networkConnection], IPNetworkConnection=networkConnection.path, Mode=pywbem.Uint16(32768))
+            self.assertIn(rc[0], [0, 4096])
+            if rc[0] == 4096: # Job started
+                # Wait for job completed indication
+                job = { "JobState": 4 }
+                while job["JobState"] == 4:
+                    job = self.wait_for_job(rc[1]["Job"])
+                self.assertEqual(job["JobState"], 7) # Completed
 
         # Check presence of SwitchService
         switchServices = self.wbemconnection.Associators(settingData.path, ResultClass="LMI_SwitchService",

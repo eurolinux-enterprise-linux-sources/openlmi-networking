@@ -1,0 +1,28 @@
+From c516c9e6f4d909018f4766a50887d111716af726 Mon Sep 17 00:00:00 2001
+From: Radek Novacek <rnovacek@redhat.com>
+Date: Wed, 19 Feb 2014 09:16:45 +0100
+Subject: [PATCH 1/2] Fix IPv6Type property of LMI_IPAssignmentSettingData
+ class for DHCPv6
+
+IPv6Type property was incorrectly set to disabled when actual type was
+DHCPv6.
+---
+ src/ipassignmentsettingdata.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/ipassignmentsettingdata.c b/src/ipassignmentsettingdata.c
+index f3b2f3d..370cb8f 100644
+--- a/src/ipassignmentsettingdata.c
++++ b/src/ipassignmentsettingdata.c
+@@ -79,7 +79,7 @@ CMPIStatus connection_to_IPAssignmentSettingData(
+                     LMI_IPAssignmentSettingData_Set_IPv6Type(w,
+                             LMI_IPAssignmentSettingData_IPv6Type_Stateless);
+                     break;
+-                case SETTING_METHOD_DHCP:
++                case SETTING_METHOD_DHCPv6:
+                     LMI_IPAssignmentSettingData_Set_IPv6Type(w,
+                             LMI_IPAssignmentSettingData_IPv6Type_DHCPv6);
+                     break;
+-- 
+1.8.5.3
+

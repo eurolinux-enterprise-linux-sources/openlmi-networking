@@ -1,7 +1,7 @@
 %global logfile %{_localstatedir}/log/openlmi-install.log
 
 Name:           openlmi-networking
-Version:        0.2.1
+Version:        0.2.2
 Release:        1%{?dist}
 Summary:        CIM providers for network management
 
@@ -14,7 +14,7 @@ Provides:       cura-networking%{?_isa} = %{version}-%{release}
 Obsoletes:      cura-networking < 0.0.5-1
 
 BuildRequires:  cmake
-BuildRequires:  openlmi-providers-devel >= 0.7.0
+BuildRequires:  openlmi-providers-devel >= 0.4.1
 BuildRequires:  konkretcmpi-devel >= 0.9.1
 BuildRequires:  sblim-cmpi-devel
 BuildRequires:  cim-schema
@@ -29,7 +29,7 @@ Requires:       python2
 # sblim-sfcb or tog-pegasus
 Requires:       cim-server
 # Require openlmi-providers because of registration scripts
-Requires:       openlmi-providers >= 0.7.0
+Requires:       openlmi-providers >= 0.4.1
 
 %description
 %{name} is set of CMPI providers for network management using
@@ -125,8 +125,12 @@ fi >> %logfile 2>&1
 
 
 %changelog
+* Tue Jan 07 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-1
+- Version 0.2.2
+
 * Mon Nov 04 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-1
 - Version 0.2.1
+- Require openlmi-providers-0.4.1
 
 * Mon Oct 14 2013 Radek Novacek <rnovacek@redhat.com> 0.2.0-1
 - Version 0.2.0

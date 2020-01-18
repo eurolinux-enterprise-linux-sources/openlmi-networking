@@ -1,0 +1,34 @@
+From b148ae7463f5f3817015c06b1a0256d4ce4530ee Mon Sep 17 00:00:00 2001
+From: Radek Novacek <rnovacek@redhat.com>
+Date: Wed, 12 Feb 2014 13:56:22 +0100
+Subject: [PATCH 2/4] Support for specifying port by name in connection
+
+It's possible to specify network by its name when creating a connection
+in NetworkManager. This commit adds support for it to the provider.
+---
+ src/connection_nm.c | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+
+diff --git a/src/connection_nm.c b/src/connection_nm.c
+index cca8b8f..18e7f8a 100644
+--- a/src/connection_nm.c
++++ b/src/connection_nm.c
+@@ -201,6 +201,15 @@ LMIResult connection_read_properties(Connection *connection, GHashTable *hash)
+                     }
+                 }
+             }
++            v = g_hash_table_lookup(connection_map, "interface-name");
++            if (v) {
++                s = g_value_get_string(v);
++                if (s != NULL) {
++                    const Ports *ports = network_get_ports(connection->network);
++                    Port *port = ports_find_by_id(ports, s);
++                    connection->port = port;
++                }
++            }
+         } else if (strcmp(key, "802-3-ethernet") == 0) {
+             v = g_hash_table_lookup((GHashTable *) value, "mac-address");
+             if (v != NULL) {
+-- 
+1.8.5.3
+

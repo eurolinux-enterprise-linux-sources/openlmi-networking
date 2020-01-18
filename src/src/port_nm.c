@@ -178,6 +178,8 @@ Port *port_new_from_objectpath(Network *network, const char *objectpath)
         priv->subproxy = dbus_g_proxy_new_for_name(network_priv_get_dbus_connection(network), NM_SERVICE_DBUS, objectpath, priv->subinterface);
         dbus_g_proxy_add_signal(priv->subproxy, "PropertiesChanged", DBUS_TYPE_G_MAP_OF_VARIANT, G_TYPE_INVALID);
         dbus_g_proxy_connect_signal(priv->subproxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), port, NULL);
+    } else {
+        priv->subproxy = NULL;
     }
 
     if (port_read_properties(port) != LMI_SUCCESS) {

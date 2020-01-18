@@ -620,9 +620,23 @@ KUint16 LMI_IPNetworkConnectionCapabilities_LMI_CreateSlaveSetting(
 
     // Return reference to LMI_IPAssignmentSettingData
     const char *ns = KNameSpace(LMI_IPNetworkConnectionCapabilitiesRef_ToObjectPath(self, NULL));
+
+    const char *classname;
+    switch (connection_get_type(master_connection)) {
+        case CONNECTION_TYPE_BRIDGE:
+            classname = LMI_BridgingSlaveSettingData_ClassName;
+            break;
+        case CONNECTION_TYPE_BOND:
+            classname = LMI_BondingSlaveSettingData_ClassName;
+            break;
+        default:
+            classname = LMI_IPAssignmentSettingData_ClassName;
+            break;
+    }
+
     LMI_IPAssignmentSettingDataRef ref;
     LMI_IPAssignmentSettingDataRef_Init(&ref, _cb, ns);
-    char *instanceid = id_to_instanceid(slave_id, LMI_IPAssignmentSettingData_ClassName);
+    char *instanceid = id_to_instanceid(slave_id, classname);
     free(slave_id);
     if (instanceid == NULL) {
         error("Memory allocation failed");
@@ -632,16 +646,7 @@ KUint16 LMI_IPNetworkConnectionCapabilities_LMI_CreateSlaveSetting(
         free(instanceid);
 
         CMPIObjectPath *cop = LMI_IPAssignmentSettingDataRef_ToObjectPath(&ref, NULL);
-        switch (connection_get_type(master_connection)) {
-            case CONNECTION_TYPE_BRIDGE:
-                CMSetClassName(cop, LMI_BridgingSlaveSettingData_ClassName);
-                break;
-            case CONNECTION_TYPE_BOND:
-                CMSetClassName(cop, LMI_BridgingSlaveSettingData_ClassName);
-                break;
-            default:
-                break;
-        }
+        CMSetClassName(cop, classname);
         KRef_SetObjectPath(SettingData, cop);
     }
 

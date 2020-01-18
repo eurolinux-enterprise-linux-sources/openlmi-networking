@@ -17,6 +17,7 @@ class TestBonding(TestBase):
         for le in les:
             if le["Name"] in self.ports and le["Name"] != "lo":
                 self.networkConnections.append(le)
+        print "Running test on: ", [le["Name"] for le in self.networkConnections]
         self.assertGreater(len(self.networkConnections), 1, "At least two ports required for bonding test")
 
         # Subscribe to indication
@@ -40,6 +41,15 @@ class TestBonding(TestBase):
         self.assertEqual(rc[0], 0)
         self.assertTrue(rc[1] is not None)
         settingData = self.wbemconnection.GetInstance(rc[1]["SettingData"])
+
+        slaves = self.wbemconnection.AssociatorNames(settingData.path,
+                ResultClass="LMI_BondingSlaveSettingData",
+                AssocClass="LMI_OrderedIPAssignmentComponent")
+        self.assertEqual(len(slaves), 1)
+
+        # Save the slave SettingData
+        slaveSettingData = {}
+        slaveSettingData[self.networkConnections[0]] = slaves[0]
 
         # Delete the connection on cleanup
         # Deleting master connection will also delete the slaves
@@ -102,21 +112,48 @@ class TestBonding(TestBase):
             rc = self.wbemconnection.InvokeMethod("LMI_CreateSlaveSetting", cap.path, MasterSettingData=settingData.path)
             self.assertEqual(len(rc), 2)
             self.assertEqual(rc[0], 0)
+            self.assertEqual(rc[1]["SettingData"].classname, "LMI_BondingSlaveSettingData")
+            slaveSettingData[networkConnection] = rc[1]["SettingData"]
 
         # Check if the slave SettingDatas are associated to master
         assoc = self.wbemconnection.Associators(settingData.path, ResultClass="LMI_BondingSlaveSettingData")
         self.assertEqual(len(assoc), len(self.networkConnections))
 
+        # Activate connection using MasterSettingData
         for networkConnection in self.networkConnections:
             rc = self.wbemconnection.InvokeMethod("ApplySettingToIPNetworkConnection", self.confService.path,
                     SettingData=settingData.path, IPNetworkConnection=networkConnection.path, Mode=pywbem.Uint16(32768))
             self.assertIn(rc[0], [0, 4096])
-            if rc[0] == 4096:
-                job = self.wait_for_job(rc[1]["Job"])
+            if rc[0] == 4096: # Job started
+                # Wait for job completed indication
+                job = { "JobState": 4 }
+                while job["JobState"] == 4:
+                    job = self.wait_for_job(rc[1]["Job"])
                 self.assertEqual(job["JobState"], 7) # Completed
 
-        # Give NM some time to active the connections
-        time.sleep(5)
+        # Deactivate connection
+        for networkConnection in self.networkConnections:
+            rc = self.wbemconnection.InvokeMethod("ApplySettingToIPNetworkConnection", self.confService.path,
+                    SettingData=settingData.path, IPNetworkConnection=networkConnection.path, Mode=pywbem.Uint16(32769))
+            self.assertIn(rc[0], [0, 4096])
+            if rc[0] == 4096: # Job started
+                # Wait for job completed indication
+                job = { "JobState": 4 }
+                while job["JobState"] == 4:
+                    job = self.wait_for_job(rc[1]["Job"])
+                self.assertEqual(job["JobState"], 7) # Completed
+
+        # Activate connection using SlaveSettingData
+        for networkConnection in self.networkConnections:
+            rc = self.wbemconnection.InvokeMethod("ApplySettingToIPNetworkConnection", self.confService.path,
+                    SettingData=slaveSettingData[networkConnection], IPNetworkConnection=networkConnection.path, Mode=pywbem.Uint16(32768))
+            self.assertIn(rc[0], [0, 4096])
+            if rc[0] == 4096: # Job started
+                # Wait for job completed indication
+                job = { "JobState": 4 }
+                while job["JobState"] == 4:
+                    job = self.wait_for_job(rc[1]["Job"])
+                self.assertEqual(job["JobState"], 7) # Completed
 
         # Check presence of master port
         aggregators = self.wbemconnection.Associators(sd.path, ResultClass="LMI_LinkAggregator8023ad",

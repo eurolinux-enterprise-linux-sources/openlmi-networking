@@ -1,8 +1,8 @@
 %global logfile %{_localstatedir}/log/openlmi-install.log
 
 Name:           openlmi-networking
-Version:        0.2.1
-Release:        1%{?dist}
+Version:        0.2.2
+Release:        7%{?dist}
 Summary:        CIM providers for network management
 
 License:        LGPLv2+
@@ -24,6 +24,19 @@ BuildRequires:  NetworkManager-glib-devel
 BuildRequires:  libuuid-devel
 BuildRequires:  python-sphinx
 BuildRequires:  python-sphinx-theme-openlmi
+
+# Fix association between device and its bridging setting
+Patch0:         openlmi-networking-0.2.2-fix-assoc-between-device-and-bridging-setting.patch
+# Support for specifying port by name in connection
+Patch1:         openlmi-networking-0.2.2-support-for-specifying-port-by-name.patch
+# bond: Allow to change bond device name
+Patch2:         openlmi-networking-0.2.2-bond-allow-to-change-bond-device-name.patch
+# bridge/bond: make sure that the enslaved setting has unique name
+Patch3:         openlmi-networking-0.2.2-make-enslave-setting-caption-unique.patch
+# Fix IPv6Type property of LMI_IPAssignmentSettingData class for DHCPv6
+Patch4:         openlmi-networking-0.2.2-fix-ipv6type-property-of-LMI_IPAssignmentSettingData.patch
+# React to IP configuration change
+Patch5:         openlmi-networking-0.2.2-react-to-ip-configuration-change.patch
 
 # For openlmi-register-pegasus script
 Requires:       python2
@@ -48,6 +61,12 @@ BuildArch:      noarch
 
 %prep
 %setup -q
+%patch0 -p1
+%patch1 -p1
+%patch2 -p1
+%patch3 -p1
+%patch4 -p1
+%patch5 -p1
 
 
 %build
@@ -126,6 +145,53 @@ fi >> %logfile 2>&1
 
 
 %changelog
+* Tue Mar 11 2014 Stephen Gallagher <sgallagh@redhat.com> - 0.2.2-7
+- Related: rhbz#1065298 - Revert unrelated patches
+
+* Mon Mar 10 2014 Stephen Gallagher <sgallagh@redhat.com> 0.2.2-6
+- Resolves: rhbz#1065298 - lmishell freezes while creating bond
+
+* Thu Feb 27 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-5
+- Fix "React to IP configuration change" patch
+- Resolves: rhbz#1069169
+
+* Tue Feb 25 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-4
+- Fix IPv6Type property of LMI_IPAssignmentSettingData class for DHCPv6
+- React to IP configuration change
+- Resolves: #1066853, #1069169
+
+* Wed Feb 12 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-3
+- Fix LMI_IPElementSettingData refering bridging master setting instead of slave setting
+- Support connections that has interface-name option specified
+- Fix that bond slave names are not going above 2
+- allow virtual device name change for bonds
+- Resolves: #1064215, #1064324, #1064280, #1064334
+
+* Fri Jan 24 2014 Daniel Mach <dmach@redhat.com> - 0.2.2-2
+- Mass rebuild 2014-01-24
+
+* Wed Jan 08 2014 Radek Novacek <rnovacek@redhat.com> 0.2.2-1
+- Version 0.2.2
+- Resolves: rhbz#1049451
+
+* Fri Dec 27 2013 Daniel Mach <dmach@redhat.com> - 0.2.1-5
+- Mass rebuild 2013-12-27
+
+* Tue Dec 10 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-4
+- Fix that association LMI_IPElementSettingData refers wrong classes
+- Resolves: rhbz#1038498
+
+* Mon Dec 02 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-3
+- Use proper classname of slave SettingData in CreateSlaveSetting
+- bridging: Don't forget master setting when modifying slave setting
+- fix the tests
+- Fix potential crash when setting master connection that not exists
+- Resolves: rhbz#1035674, rhbz#1035676
+
+* Wed Nov 27 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-2
+- Allow to use SlaveSettingData for activation of slave settings
+- Resolves: rhbz#1028475
+
 * Mon Nov 04 2013 Radek Novacek <rnovacek@redhat.com> 0.2.1-1
 - Version 0.2.1
 - Require openlmi-providers-0.4.1

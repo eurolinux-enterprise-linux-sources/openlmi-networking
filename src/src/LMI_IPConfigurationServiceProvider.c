@@ -25,6 +25,8 @@
 #include "LMI_IPAssignmentSettingData.h"
 #include "LMI_BondingMasterSettingData.h"
 #include "LMI_BridgingMasterSettingData.h"
+#include "LMI_BondingSlaveSettingData.h"
+#include "LMI_BridgingSlaveSettingData.h"
 #include "LMI_IPNetworkConnection.h"
 #include "LMI_NetworkJob.h"
 #include "network.h"
@@ -330,12 +332,17 @@ KUint32 LMI_IPConfigurationService_ApplySettingToIPNetworkConnection(
 
     LMI_IPAssignmentSettingDataRef settingDataRef;
     LMI_IPAssignmentSettingDataRef_InitFromObjectPath(&settingDataRef, _cb, SettingData->value);
-    char *id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_IPAssignmentSettingData_ClassName);
-    if (id == NULL) {
+    char *id = NULL;
+    if (strstr(settingDataRef.InstanceID.chars, LMI_IPAssignmentSettingData_ClassName) != NULL) {
+        id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_IPAssignmentSettingData_ClassName);
+    } else if (strstr(settingDataRef.InstanceID.chars, LMI_BridgingMasterSettingData_ClassName) != NULL) {
         id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_BridgingMasterSettingData_ClassName);
-    }
-    if (id == NULL) {
+    } else if (strstr(settingDataRef.InstanceID.chars, LMI_BondingMasterSettingData_ClassName) != NULL) {
         id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_BondingMasterSettingData_ClassName);
+    } else if (strstr(settingDataRef.InstanceID.chars, LMI_BridgingSlaveSettingData_ClassName) != NULL) {
+        id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_BridgingSlaveSettingData_ClassName);
+    } else if (strstr(settingDataRef.InstanceID.chars, LMI_BondingSlaveSettingData_ClassName) != NULL) {
+        id = id_from_instanceid(settingDataRef.InstanceID.chars, LMI_BondingSlaveSettingData_ClassName);
     }
     if (id == NULL) {
         KSetStatus2(_cb, status, ERR_INVALID_PARAMETER, "Invalid InstanceID of " LMI_IPAssignmentSettingData_ClassName " instance");

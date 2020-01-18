@@ -1,0 +1,99 @@
+From 93ff1355fab7ab9336f3d929908a57ae346945b3 Mon Sep 17 00:00:00 2001
+From: Radek Novacek <rnovacek@redhat.com>
+Date: Mon, 24 Feb 2014 12:38:35 +0100
+Subject: [PATCH 2/2] React to IP configuration change
+
+There is new NM signal PropertiesChanged of IP4Config and IP6Config
+objects. It's used when IP configuration on given device changes but the
+state of the device itself doesn't change.
+
+This should fix issues with DHCPv6 where IPv6 addresses don't appear
+as LMI_IPProtocolEndpoint instances.
+---
+ src/port_nm.c | 34 ++++++++++++++++++++++++++++++++++
+ 1 file changed, 34 insertions(+)
+
+diff --git a/src/port_nm.c b/src/port_nm.c
+index 3fb78c9..bace1e3 100644
+--- a/src/port_nm.c
++++ b/src/port_nm.c
+@@ -40,6 +40,8 @@ typedef struct PortPriv {
+     int nm_state;
+     int nm_state_reason;
+     Network *network; // Needed for ability to update properties when port state changes
++    DBusGProxy *ip4config_proxy;
++    DBusGProxy *ip6config_proxy;
+ } PortPriv;
+ 
+ void port_state_changed_cb(void *proxy, unsigned int state1, unsigned int state2, unsigned int state3, Port *port);
+@@ -104,6 +106,8 @@ Port *port_new_from_objectpath(Network *network, const char *objectpath)
+         port_free(port);
+         return NULL;
+     }
++    priv->ip4config_proxy = NULL;
++    priv->ip6config_proxy = NULL;
+ 
+     GValue *v = dbus_get_property(priv->proxy, NULL, NM_DBUS_INTERFACE_DEVICE, "DeviceType");
+     if (v == NULL) {
+@@ -263,6 +267,14 @@ void port_priv_free(void *priv)
+     if (p->subproxy != NULL) {
+         g_object_unref(p->subproxy);
+     }
++    if (p->ip4config_proxy) {
++        dbus_g_proxy_disconnect_signal(p->ip4config_proxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), NULL);
++        g_object_unref(p->ip4config_proxy);
++    }
++    if (p->ip6config_proxy) {
++        dbus_g_proxy_disconnect_signal(p->ip6config_proxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), NULL);
++        g_object_unref(p->ip6config_proxy);
++    }
+     free(p);
+ }
+ 
+@@ -311,6 +323,26 @@ Ports *port_priv_get_slaves(Network *network, const Port *port)
+     return slaves;
+ }
+ 
++void ipconfig_subscribe(Port *port, DBusGProxy **proxy, const char *ipconfig, const char *interface)
++{
++    if (*proxy && strcmp(dbus_g_proxy_get_path(*proxy), ipconfig) == 0) {
++        // We are already subscribed
++        return;
++    }
++    PortPriv *priv = port->priv;
++    if (*proxy) {
++        dbus_g_proxy_disconnect_signal(*proxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), port);
++        g_object_unref(*proxy);
++    }
++    *proxy = dbus_g_proxy_new_for_name(network_priv_get_dbus_connection(priv->network), NM_SERVICE_DBUS, ipconfig, interface);
++    if (*proxy == NULL) {
++        error("Unable to create DBus proxy: %s %s %s", NM_SERVICE_DBUS, ipconfig, interface);
++    } else {
++        dbus_g_proxy_add_signal(*proxy, "PropertiesChanged", DBUS_TYPE_G_MAP_OF_VARIANT, G_TYPE_INVALID);
++        dbus_g_proxy_connect_signal(*proxy, "PropertiesChanged", G_CALLBACK(port_subproperties_changed_cb), port, NULL);
++    }
++}
++
+ LMIResult port_read_ipconfig(Port *port, const char *ip4config, const char *ip6config)
+ {
+     LMIResult res = LMI_SUCCESS;
+@@ -334,6 +366,9 @@ LMIResult port_read_ipconfig(Port *port, const char *ip4config, const char *ip6c
+     if (ip4config != NULL && strcmp(ip4config, "/") != 0) {
+         ipproperties = dbus_get_properties(priv->proxy, ip4config, NM_DBUS_INTERFACE_IP4_CONFIG);
+         if (ipproperties != NULL) {
++            // Subscribe to change
++            ipconfig_subscribe(port, &priv->ip4config_proxy, ip4config, NM_DBUS_INTERFACE_IP4_CONFIG);
++
+             addresses = dbus_property_array(ipproperties, "Addresses");
+             if (addresses != NULL) {
+                 for (guint i = 0; i < addresses->len; ++i) {
+@@ -376,6 +411,9 @@ LMIResult port_read_ipconfig(Port *port, const char *ip4config, const char *ip6c
+     if (ip6config && strcmp(ip6config, "/") != 0) {
+         ipproperties = dbus_get_properties(priv->proxy, ip6config, NM_DBUS_INTERFACE_IP6_CONFIG);
+         if (ipproperties != NULL) {
++            // Subscribe to change
++            ipconfig_subscribe(port, &priv->ip6config_proxy, ip6config, NM_DBUS_INTERFACE_IP6_CONFIG);
++
+             addresses = dbus_property_array(ipproperties, "Addresses");
+ 
+             if (addresses) {
